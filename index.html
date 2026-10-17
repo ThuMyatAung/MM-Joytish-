@@ -55,7 +55,7 @@
     // v6.16 (2026-10-15): Western Layer 2 — Solar Return + Secondary Progressions (Readings), aspect patterns (Yoga), Composite chart + partner profiles (Matching/Relate), Vocational + Relocation (Place). All tropical-only; sidereal unchanged.
     // v6.17 (2026-10-16): Strength layer — Shadbala (six-fold, main components) + Ashtakavarga (classical BAV/SAV, total 337) as one additive card in the sidereal Birth Chart tab. No existing reading or calculation changed.
     // v6.18 (2026-10-16): Matching — top Clear now also resets the rival (and closes it), plus a dedicated rival clear button. Rectification — clear-all button. Tropical Birth Chart — Western extras card (Part of Fortune day/night formula, mean Black Moon Lilith, Sun–Moon midpoint). Chiron deferred: no verified orbital elements available to this app's accuracy standard.
-    // v6.20 (2026-10-17): Wealth-pattern layer — net-worth tier relabelled to the 5-step scale (Normal/Moderate/Middle/Strong Wealth/High Wealth); new income-pattern taxonomy (20 significator rules, top 6 shown with placement evidence), modern asset profile (home/condo/car/land/gold/shares), dasha wealth windows (windfall vs rise), and a STRICT exceptional card (wealth-capacity band + honor tier + luxury assets) that renders only when a multi-sided gate passes (score>=88, yoga stack>=3 incl. Mahapurusha or 2 Raja, >=3 key lords strong, >=2 own/exalt, >=2 D9-confirmed, Lagna lord sound, <=1 combust key lord; band picked conservatively). Nakshatra layer: NAKSHATRA_INFO (deity/symbol/nature x27) + nakshatraRows() + a Birth Chart card (sidereal branch, beside Shadbala) with per-graha nakshatra/pada/star-lord and Lagna/Moon/Sun profiles. No existing calculation changed; golden differs only in the relabelled lifeTier string.
+    // v6.21 (2026-10-17): Added user-adjustable USD wealth scenario estimator with economy-income context and optional current net worth/annual income inputs. v6.20: Wealth-pattern layer — net-worth tier relabelled to the 5-step scale (Normal/Moderate/Middle/Strong Wealth/High Wealth); new income-pattern taxonomy (20 significator rules, top 6 shown with placement evidence), modern asset profile (home/condo/car/land/gold/shares), dasha wealth windows (windfall vs rise), and a STRICT exceptional card (wealth-capacity band + honor tier + luxury assets) that renders only when a multi-sided gate passes (score>=88, yoga stack>=3 incl. Mahapurusha or 2 Raja, >=3 key lords strong, >=2 own/exalt, >=2 D9-confirmed, Lagna lord sound, <=1 combust key lord; band picked conservatively). Nakshatra layer: NAKSHATRA_INFO (deity/symbol/nature x27) + nakshatraRows() + a Birth Chart card (sidereal branch, beside Shadbala) with per-graha nakshatra/pada/star-lord and Lagna/Moon/Sun profiles. No existing calculation changed; golden differs only in the relabelled lifeTier string.
     // v6.19 (2026-10-17): Correctness pass — (1) ErrorBoundary reset now removes ONLY this app's keys (jyotish_agreed_v1, saved_jyotish_pwa) instead of localStorage.clear() wiping the whole origin. (2) Bhava details degree range now names the end sign (12.4° in one sign ends at 12.4° of the NEXT sign). (3) Timezone: preset/searched cities resolve an IANA zone (country/state tables from Nominatim address); birth/matching/relate JDs use the zone's offset FOR THE ENTERED DATE via Intl (DST + historical rules), manual tz entry clears the zone and wins; estimateTimezone remains only as fallback (GPS / unmapped places); Asia/Yangon is +6.5 on modern dates so Yangon tz handling is unchanged. (4) CALCULATION AUDIT vs Swiss Ephemeris 2.10: Sun/Moon/Lagna/mean-node/ayanamsas were already accurate (<=0.8 / <=7 / <=0.25 / <=0.23 / <=0.11 arcmin), but Mercury..Saturn (+Uranus/Neptune/Pluto) carried a J2000-frame error growing ~50.3 arcsec/yr because precession was never applied to the Keplerian-element planets — fixed in toGeocentric (_precLon). Planet longitudes therefore SHIFT by -psi(T) vs v6.18 (e.g. -8.1 arcmin for 1990 births, -42 for 1950, +22 for 2026 — sign follows the correction); Sun/Moon/Lagna/nodes/ayanamsa outputs are unchanged. Post-fix audit (5 epochs, 1950-2026): Mercury/Venus/Mars <=1.1 arcmin, Moon improved 7.2 -> 2.5 arcmin by adding its five next-largest longitude terms; Jupiter/Saturn keep their element residuals (<=6 / <=10 arcmin). A van Flandern-Pulkkinen perturbation series for Jupiter/Saturn was tested and REJECTED on audit evidence: the Standish elements already absorb the great inequality, so adding the series double-counted it (Saturn worsened 9.6 -> 32 arcmin in testing). Remaining known accuracy class (disclosed, not hidden): true node up to ~25 arcmin (mean node, the default, is <=0.25 arcmin).
     const { useState, useEffect, useRef, Component } = React;
 
@@ -2009,6 +2009,39 @@
       return { sources, assets, windows, exceptional };
     }
 
+    // v6.21: Transparent, scenario-based USD wealth estimate. This is an interpretive
+    // astrology feature, not a statistically validated prediction or financial advice.
+    function calculateWealthEstimate(score, economy, currentNetWorth, annualIncome) {
+      const cfg = {
+        high: { label: 'ဖွံ့ဖြိုးပြီး / High-income economy', factor: 1.00, savings: 1.00 },
+        upper: { label: 'Upper-middle-income economy', factor: 0.78, savings: 0.92 },
+        lower: { label: 'Lower-middle-income economy', factor: 0.56, savings: 0.82 },
+        low: { label: 'Low-income / developing economy', factor: 0.40, savings: 0.72 }
+      }[economy] || { label: 'Lower-middle-income economy', factor: 0.56, savings: 0.82 };
+      const s = Math.max(1, Math.min(100, Number(score) || 1));
+      const nw = Math.max(0, Number(currentNetWorth) || 0);
+      const income = Math.max(0, Number(annualIncome) || 0);
+      const hasInputs = String(currentNetWorth).trim() !== '' || String(annualIncome).trim() !== '';
+      if (hasInputs) {
+        // Ten-year illustrative accumulation scenario. Existing net worth is not
+        // discounted by country; only the assumed new accumulation varies.
+        const chartFactor = 0.70 + (s / 100) * 0.60;
+        const lowAdd = income * 10 * 0.05 * chartFactor * cfg.savings;
+        const highAdd = income * 10 * 0.20 * chartFactor * cfg.savings;
+        return { low: Math.round((nw + lowAdd) / 1000) * 1000, high: Math.round((nw + highAdd) / 1000) * 1000, mode: 'input', economy: cfg.label, score: s };
+      }
+      // Broad, deliberately overlapping bands; the country factor is only a
+      // contextual scenario adjustment, not a claim that nationality sets wealth.
+      const bands = s >= 82 ? [500000, 5000000] : s >= 68 ? [150000, 1500000] : s >= 54 ? [50000, 500000] : s >= 40 ? [10000, 150000] : [0, 50000];
+      return { low: Math.round(bands[0] * cfg.factor / 1000) * 1000, high: Math.round(bands[1] * cfg.factor / 1000) * 1000, mode: 'chart', economy: cfg.label, score: s };
+    }
+    function formatUSD(value) {
+      const n = Math.max(0, Number(value) || 0);
+      if (n >= 1000000) return '$' + (n / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'M';
+      if (n >= 1000) return '$' + Math.round(n / 1000).toLocaleString('en-US') + 'K';
+      return '$' + Math.round(n).toLocaleString('en-US');
+    }
+
     function generateLifeOverview(birthPlanets, ayanamsa, dashaTree, yogas) {
       if (!birthPlanets || typeof birthPlanets.Lagna !== 'number') return {netWorthTier:'',netWorthDesc:'',pillars:{},evidence:[]};
       const houses = {};
@@ -2037,7 +2070,7 @@
         marriage:`၇ တန့်အရှင် ${_lordOfHouse(birthPlanets,7)} နှင့် ၂/၈/၁၁ တန့်တို့ကို ဒသာ-Transit ဖြင့် activate ဖြစ်ချိန်မှာ commitment ၏အလေးချိန် ပိုတက်မည်။ Natal promise မရှိလျှင် transit တစ်ခုတည်းနဲ့ အိမ်ထောင်ဖြစ်မည်ဟု မသတ်မှတ်သင့်။`
       };
       const _wp = wealthPatternAnalysis(birthPlanets, yogas, dashaTree, wealthScore);
-      return {netWorthTier:tier,incomeSources:_wp.sources,assetProfile:_wp.assets,wealthWindows:_wp.windows,exceptional:_wp.exceptional,netWorthDesc:`ဓန Potential Score ${wealthScore}/100။ ${wealthScore>=70?'ဓနတိုးတက်ရန် အခြေခံ promise ကောင်းသည်၊ သို့သော် အကျိုးပေးသည့်ကာလကို ဒသာ/Transit ဖြင့် ချိန်ရမည်။':'အမြဲတမ်းမြင့်မားမည်ဟု မဆိုနိုင်ဘဲ အချိန်ကာလနှင့် စီမံခန့်ခွဲမှုက အဓိကဖြစ်သည်။'} လက်ရှိ ${active?active.lord+' မဟာဒသာ':''} ကို trigger အဖြစ်ထည့်တွက်ထားသည်။`,pillars,evidence:[_lordSignificatorText(birthPlanets,2),_lordSignificatorText(birthPlanets,10),_lordSignificatorText(birthPlanets,11)]};
+      return {wealthScore,netWorthTier:tier,incomeSources:_wp.sources,assetProfile:_wp.assets,wealthWindows:_wp.windows,exceptional:_wp.exceptional,netWorthDesc:`ဓန Potential Score ${wealthScore}/100။ ${wealthScore>=70?'ဓနတိုးတက်ရန် အခြေခံ promise ကောင်းသည်၊ သို့သော် အကျိုးပေးသည့်ကာလကို ဒသာ/Transit ဖြင့် ချိန်ရမည်။':'အမြဲတမ်းမြင့်မားမည်ဟု မဆိုနိုင်ဘဲ အချိန်ကာလနှင့် စီမံခန့်ခွဲမှုက အဓိကဖြစ်သည်။'} လက်ရှိ ${active?active.lord+' မဟာဒသာ':''} ကို trigger အဖြစ်ထည့်တွက်ထားသည်။`,pillars,evidence:[_lordSignificatorText(birthPlanets,2),_lordSignificatorText(birthPlanets,10),_lordSignificatorText(birthPlanets,11)]};
     }
 
     function analyzeConjunctionsAndAspects(p) {
@@ -4192,6 +4225,9 @@
       const [activeTab, setActiveTab] = useState('transit');
       const [agreed, setAgreed] = useState(() => { try { return localStorage.getItem('jyotish_agreed_v1') === '1'; } catch (e) { return false; } });
       const agreeDisclaimer = () => { try { localStorage.setItem('jyotish_agreed_v1', '1'); } catch (e) {} setAgreed(true); };
+      const [wealthEconomy, setWealthEconomy] = useState('lower');
+      const [wealthCurrentAssets, setWealthCurrentAssets] = useState('');
+      const [wealthAnnualIncome, setWealthAnnualIncome] = useState('');
       const [chartStyle, setChartStyle] = useState('east');
       const [varga, setVarga] = useState(1);
       const [isOverlayOn, setIsOverlayOn] = useState(false);
@@ -4456,6 +4492,7 @@
       const currentRunningDasha = dashaTree.find((d) => d.start <= currentDateStr && d.end >= currentDateStr) || dashaTree[0] || { lord: 'Ketu', start: '2026-01-01', end: '2033-01-01' };
 
       const lifeOverview = generateLifeOverview(birthPlanets, ayanamsa, dashaTree, yogas);
+      const wealthEstimate = calculateWealthEstimate(lifeOverview.wealthScore || 1, wealthEconomy, wealthCurrentAssets, wealthAnnualIncome);
       const careerBenefit = calculateCareerBenefitSummary(birthPlanets, dashaTree);
       const spouseProfile = buildSpouseProfile(birthPlanets, dashaTree);
       const ayuReading = generateAyuReading(birthPlanets, dashaTree);
@@ -5063,8 +5100,32 @@
                   <div className="text-[11px] text-amber-300 font-bold">ခန့်မှန်းခြေ ဓနဥစ္စာ အဆင့်အတန်း (Estimated Net Worth):</div>
                   <div className="text-sm font-bold mt-0.5">{lifeOverview.netWorthTier}</div>
                   <p className="text-emerald-100 text-[11px] mt-1 leading-relaxed">{lifeOverview.netWorthDesc}</p>
-                    <p className="text-[9px] text-emerald-200/60 mt-0.5">အမောင့် တန်း ဆိုတာ ဇာတာ ဓန အင်အား ကို ခေတ် ငွေ တန်ဖိုး နဲ့ ခန့်မှန်း ပြ ထား တာ ပါ — လက်တွေ့ ပမာဏ ကို အာမ ခံချက် မဟုတ် ပါ။</p>
-                    <p className="text-[9px] text-emerald-200/60">နိုင်ငံ အလိုက် ကွာ ပါ တယ် — ဖွံ့ဖြိုးဆဲ နိုင်ငံ (ဥပမာ မြန်မာ) မှာ ဆို အထက် တန်း တွေ ကို အကြမ်းဖျင်း ၁၀ ဆ လျှော့ ဖတ် ပါ: Normal $50K အောက် / Moderate $50K–200K / Middle $200K–1M / Strong $1M–5M / High $5M–10M / Ultra $10M ကျော်။ ဖွံ့ဖြိုးဆဲ နိုင်ငံ မှာ ဓန က ငွေသား အဖြစ် ထက် မြေ / အိမ် / ရွှေ / လုပ်ငန်း ပုံစံ နဲ့ ပို ရှိ တတ် ပါ တယ်။</p>
+                    <div className="mt-2 rounded-lg border border-emerald-600/70 bg-black/15 p-2.5 space-y-2">
+                      <div className="text-[11px] font-bold text-amber-200">💵 USD ဓနပမာဏ ခန့်မှန်းချက် (Scenario Estimate)</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label className="text-[10px] text-emerald-100">နိုင်ငံ/စီးပွားရေးအဆင့်
+                          <select value={wealthEconomy} onChange={e=>setWealthEconomy(e.target.value)} className="mt-1 w-full rounded border border-emerald-500 bg-emerald-950 text-white p-1.5 text-[11px]">
+                            <option value="high">ဖွံ့ဖြိုးပြီး / High-income</option>
+                            <option value="upper">Upper-middle-income</option>
+                            <option value="lower">Lower-middle-income (ဥပမာ မြန်မာ)</option>
+                            <option value="low">Low-income / ဖွံ့ဖြိုးမှုနိမ့်</option>
+                          </select>
+                        </label>
+                        <label className="text-[10px] text-emerald-100">လက်ရှိ Net Worth (USD, မဖြည့်လည်းရ)
+                          <input type="number" min="0" value={wealthCurrentAssets} onChange={e=>setWealthCurrentAssets(e.target.value)} placeholder="ဥပမာ 25000" className="mt-1 w-full rounded border border-emerald-500 bg-emerald-950 text-white p-1.5 text-[11px] placeholder:text-emerald-400" />
+                        </label>
+                        <label className="text-[10px] text-emerald-100">နှစ်စဉ်ဝင်ငွေ (USD, မဖြည့်လည်းရ)
+                          <input type="number" min="0" value={wealthAnnualIncome} onChange={e=>setWealthAnnualIncome(e.target.value)} placeholder="ဥပမာ 12000" className="mt-1 w-full rounded border border-emerald-500 bg-emerald-950 text-white p-1.5 text-[11px] placeholder:text-emerald-400" />
+                        </label>
+                      </div>
+                      <div className="rounded-md bg-white/10 p-2">
+                        <div className="text-[9px] text-emerald-200">ခန့်မှန်း Net Worth Range · USD</div>
+                        <div className="text-lg font-extrabold text-white">{formatUSD(wealthEstimate.low)} – {formatUSD(wealthEstimate.high)}</div>
+                        <div className="text-[9px] text-emerald-100 mt-0.5">Astrological Wealth Potential: {lifeOverview.wealthScore || '—'}/100 · {wealthEstimate.economy}</div>
+                        <p className="text-[9px] text-emerald-100/80 mt-1">{wealthEstimate.mode === 'input' ? 'လက်ရှိပိုင်ဆိုင်မှု + နှစ်စဉ်ဝင်ငွေမှ နောက် ၁၀ နှစ်အတွင်း စုဆောင်းနိုင်မှုကို အနိမ့်/အမြင့် scenario ဖြင့် တွက်ထားသည်။' : 'လက်ရှိပိုင်ဆိုင်မှု/ဝင်ငွေ မဖြည့်ထားသဖြင့် ဇာတာ Score နှင့် စီးပွားရေးအဆင့်အပေါ် အခြေခံသော ကျယ်ပြန့်သည့် အညွှန်း Range ဖြစ်သည်။'}</p>
+                      </div>
+                      <p className="text-[9px] text-emerald-200/70">သတိပြုရန် — နိုင်ငံအဆင့်သည် ပုံမှန်ဝင်ငွေနှင့် ပိုင်ဆိုင်မှုတည်ဆောက်နိုင်မှုအတွက် context သာဖြစ်ပြီး လူတစ်ဦး၏ ဓနကို တိုက်ရိုက်မဆုံးဖြတ်ပါ။ ဤကိန်းဂဏန်းများသည် စာရင်းအင်းအရ အတည်ပြုထားသော ဗေဒင်ခန့်မှန်းချက်မဟုတ်ဘဲ ယူဆချက်အခြေပြု scenario ဖြစ်သည်။</p>
+                    </div>
                   <div className="mt-2 grid grid-cols-2 gap-1">
                     <div className="bg-white/10 rounded p-1.5"><span className="text-[9px] text-emerald-200">Evidence</span><div className="text-[10px]">{lifeOverview.evidence?.[0] || 'Chart evidence ကို ပေါင်းစပ်တွက်ထားသည်။'}</div></div>
                     <div className="bg-white/10 rounded p-1.5"><span className="text-[9px] text-emerald-200">Interpretation</span><div className="text-[10px]">Promise → Dasha → Transit အစဉ်ဖြင့် အကျိုးပေးချိန်ကို ခွဲဖတ်ပါ။</div></div>
