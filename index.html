@@ -2,7 +2,7 @@
 <html lang="my">
 <head>
   <meta charset="UTF-8">
-  <title>Jyotish Vedic App Pro</title>
+  <title>Astro MM — Jyotish & Western Astrology</title>
 
   <!-- iOS Standalone Web App Meta Tags -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -52,10 +52,12 @@
 
   <script type="text/babel">
     // v6.15 (2026-10-15): Tropical = pure Western — CircleChart (Placidus), Western-format tables, Western readings + synastry; Astrocartography shows ONLY under Tropical. Vedic layers (nakshatra, dasha, Ashtakoota, yogas, Prashna, Job/Place layers) are sidereal-only. Sidereal code paths unchanged from v6.14.
+    // v6.23 (2026-10-17): Added an in-app Core Audit Lab with repeatable invariant tests, JSON export/copy, and explicit provider/accuracy disclosures. This is a test harness, not a claim that every traditional method is fully validated.
+    // v6.22 (2026-10-17): Correctness pass — preserve valid zero coordinates/UTC offsets; pass selected node mode through matching charts; clamp impossible calendar dates; extend Vimshottari timelines to cover long lifetimes; evaluate current dasha dates in the birth-place timezone and parse date-only year labels without device-timezone shifts; correct Mahapurusha sign sets and require actual Kendra–Trikona association for Raja Yoga patterns; exclude lunar nodes from Western stellium counts. Wealth USD is now a separate transparent savings/investment scenario and is never inferred from the astrology score. Extended Swiss Ephemeris spot-check (1900–2100 sample dates): Moon error up to 2.41 arcmin, Jupiter 6.01 arcmin, Saturn 12.03 arcmin; these are sampled errors, not guaranteed bounds. Approximate modules remain explicitly labelled rather than claimed as classical-complete.
     // v6.16 (2026-10-15): Western Layer 2 — Solar Return + Secondary Progressions (Readings), aspect patterns (Yoga), Composite chart + partner profiles (Matching/Relate), Vocational + Relocation (Place). All tropical-only; sidereal unchanged.
     // v6.17 (2026-10-16): Strength layer — Shadbala (six-fold, main components) + Ashtakavarga (classical BAV/SAV, total 337) as one additive card in the sidereal Birth Chart tab. No existing reading or calculation changed.
     // v6.18 (2026-10-16): Matching — top Clear now also resets the rival (and closes it), plus a dedicated rival clear button. Rectification — clear-all button. Tropical Birth Chart — Western extras card (Part of Fortune day/night formula, mean Black Moon Lilith, Sun–Moon midpoint). Chiron deferred: no verified orbital elements available to this app's accuracy standard.
-    // v6.21 (2026-10-17): Added user-adjustable USD wealth scenario estimator with economy-income context and optional current net worth/annual income inputs. v6.20: Wealth-pattern layer — net-worth tier relabelled to the 5-step scale (Normal/Moderate/Middle/Strong Wealth/High Wealth); new income-pattern taxonomy (20 significator rules, top 6 shown with placement evidence), modern asset profile (home/condo/car/land/gold/shares), dasha wealth windows (windfall vs rise), and a STRICT exceptional card (wealth-capacity band + honor tier + luxury assets) that renders only when a multi-sided gate passes (score>=88, yoga stack>=3 incl. Mahapurusha or 2 Raja, >=3 key lords strong, >=2 own/exalt, >=2 D9-confirmed, Lagna lord sound, <=1 combust key lord; band picked conservatively). Nakshatra layer: NAKSHATRA_INFO (deity/symbol/nature x27) + nakshatraRows() + a Birth Chart card (sidereal branch, beside Shadbala) with per-graha nakshatra/pada/star-lord and Lagna/Moon/Sun profiles. No existing calculation changed; golden differs only in the relabelled lifeTier string.
+    // v6.21 (2026-10-17): Added user-adjustable USD wealth scenario estimator with economy-income context and optional current net worth/annual income inputs. v6.20: Wealth-pattern layer — net-worth tier relabelled to the 5-step scale (Normal/Moderate/Middle/Strong Wealth/High Wealth); new income-pattern taxonomy (20 significator rules, top 6 shown with placement evidence), modern asset profile (home/condo/car/land/gold/shares), dasha wealth windows (windfall vs rise), and a STRICT exceptional card (wealth-capacity band + honor tier + luxury assets) that renders only when a multi-sided gate passes (percentage-weighted multi-sided gate (wealth score >=78 and gate >=60); this is an interpretive pattern, not a money prediction). Nakshatra layer: NAKSHATRA_INFO (deity/symbol/nature x27) + nakshatraRows() + a Birth Chart card (sidereal branch, beside Shadbala) with per-graha nakshatra/pada/star-lord and Lagna/Moon/Sun profiles. No existing calculation changed; golden differs only in the relabelled lifeTier string.
     // v6.19 (2026-10-17): Correctness pass — (1) ErrorBoundary reset now removes ONLY this app's keys (jyotish_agreed_v1, saved_jyotish_pwa) instead of localStorage.clear() wiping the whole origin. (2) Bhava details degree range now names the end sign (12.4° in one sign ends at 12.4° of the NEXT sign). (3) Timezone: preset/searched cities resolve an IANA zone (country/state tables from Nominatim address); birth/matching/relate JDs use the zone's offset FOR THE ENTERED DATE via Intl (DST + historical rules), manual tz entry clears the zone and wins; estimateTimezone remains only as fallback (GPS / unmapped places); Asia/Yangon is +6.5 on modern dates so Yangon tz handling is unchanged. (4) CALCULATION AUDIT vs Swiss Ephemeris 2.10: Sun/Moon/Lagna/mean-node/ayanamsas were already accurate (<=0.8 / <=7 / <=0.25 / <=0.23 / <=0.11 arcmin), but Mercury..Saturn (+Uranus/Neptune/Pluto) carried a J2000-frame error growing ~50.3 arcsec/yr because precession was never applied to the Keplerian-element planets — fixed in toGeocentric (_precLon). Planet longitudes therefore SHIFT by -psi(T) vs v6.18 (e.g. -8.1 arcmin for 1990 births, -42 for 1950, +22 for 2026 — sign follows the correction); Sun/Moon/Lagna/nodes/ayanamsa outputs are unchanged. Post-fix audit (5 epochs, 1950-2026): Mercury/Venus/Mars <=1.1 arcmin, Moon improved 7.2 -> 2.5 arcmin by adding its five next-largest longitude terms; Jupiter/Saturn keep their element residuals (<=6 / <=10 arcmin). A van Flandern-Pulkkinen perturbation series for Jupiter/Saturn was tested and REJECTED on audit evidence: the Standish elements already absorb the great inequality, so adding the series double-counted it (Saturn worsened 9.6 -> 32 arcmin in testing). Remaining known accuracy class (disclosed, not hidden): true node up to ~25 arcmin (mean node, the default, is <=0.25 arcmin).
     const { useState, useEffect, useRef, Component } = React;
 
@@ -270,7 +272,7 @@
     }
     function personEffTz(p, y, m, d, h24, mi) {
       if (p && p.zone) { const z = zoneOffsetHours(p.zone, y, m, d, h24, mi); if (z != null) return z; }
-      return parseFloat(p && p.tz) || 6.5;
+      return finiteNumber(p && p.tz, 6.5);
     }
     const ZONE_BY_COUNTRY = { 'Myanmar': 'Asia/Yangon', 'Thailand': 'Asia/Bangkok', 'Singapore': 'Asia/Singapore', 'Malaysia': 'Asia/Kuala_Lumpur', 'Japan': 'Asia/Tokyo', 'South Korea': 'Asia/Seoul', 'India': 'Asia/Kolkata', 'United Kingdom': 'Europe/London', 'Ireland': 'Europe/Dublin', 'France': 'Europe/Paris', 'Germany': 'Europe/Berlin', 'Italy': 'Europe/Rome', 'Spain': 'Europe/Madrid', 'Netherlands': 'Europe/Amsterdam', 'United Arab Emirates': 'Asia/Dubai', 'Vietnam': 'Asia/Ho_Chi_Minh', 'Philippines': 'Asia/Manila', 'Indonesia': 'Asia/Jakarta', 'Cambodia': 'Asia/Phnom_Penh', 'Laos': 'Asia/Vientiane', 'Bangladesh': 'Asia/Dhaka', 'Nepal': 'Asia/Kathmandu', 'Sri Lanka': 'Asia/Colombo', 'China': 'Asia/Shanghai', 'Hong Kong': 'Asia/Hong_Kong', 'Taiwan': 'Asia/Taipei', 'Turkey': 'Europe/Istanbul', 'Türkiye': 'Europe/Istanbul', 'Israel': 'Asia/Jerusalem', 'Saudi Arabia': 'Asia/Riyadh', 'Qatar': 'Asia/Qatar', 'Kuwait': 'Asia/Kuwait', 'Pakistan': 'Asia/Karachi', 'Maldives': 'Indian/Maldives', 'Bhutan': 'Asia/Thimphu', 'Brunei': 'Asia/Brunei', 'Mongolia': 'Asia/Ulaanbaatar', 'New Zealand': 'Pacific/Auckland', 'South Africa': 'Africa/Johannesburg', 'Egypt': 'Africa/Cairo', 'Nigeria': 'Africa/Lagos', 'Kenya': 'Africa/Nairobi', 'Ethiopia': 'Africa/Addis_Ababa', 'Greece': 'Europe/Athens', 'Portugal': 'Europe/Lisbon', 'Switzerland': 'Europe/Zurich', 'Austria': 'Europe/Vienna', 'Belgium': 'Europe/Brussels', 'Sweden': 'Europe/Stockholm', 'Norway': 'Europe/Oslo', 'Denmark': 'Europe/Copenhagen', 'Finland': 'Europe/Helsinki', 'Poland': 'Europe/Warsaw', 'Czechia': 'Europe/Prague', 'Hungary': 'Europe/Budapest', 'Romania': 'Europe/Bucharest', 'Ukraine': 'Europe/Kyiv' };
     const ZONE_BY_US_STATE = { 'Alabama': 'America/Chicago', 'Alaska': 'America/Anchorage', 'Arizona': 'America/Phoenix', 'Arkansas': 'America/Chicago', 'California': 'America/Los_Angeles', 'Colorado': 'America/Denver', 'Connecticut': 'America/New_York', 'Delaware': 'America/New_York', 'Florida': 'America/New_York', 'Georgia': 'America/New_York', 'Hawaii': 'Pacific/Honolulu', 'Idaho': 'America/Boise', 'Illinois': 'America/Chicago', 'Indiana': 'America/Indiana/Indianapolis', 'Iowa': 'America/Chicago', 'Kansas': 'America/Chicago', 'Kentucky': 'America/New_York', 'Louisiana': 'America/Chicago', 'Maine': 'America/New_York', 'Maryland': 'America/New_York', 'Massachusetts': 'America/New_York', 'Michigan': 'America/Detroit', 'Minnesota': 'America/Chicago', 'Mississippi': 'America/Chicago', 'Missouri': 'America/Chicago', 'Montana': 'America/Denver', 'Nebraska': 'America/Chicago', 'Nevada': 'America/Los_Angeles', 'New Hampshire': 'America/New_York', 'New Jersey': 'America/New_York', 'New Mexico': 'America/Denver', 'New York': 'America/New_York', 'North Carolina': 'America/New_York', 'North Dakota': 'America/Chicago', 'Ohio': 'America/New_York', 'Oklahoma': 'America/Chicago', 'Oregon': 'America/Los_Angeles', 'Pennsylvania': 'America/New_York', 'Rhode Island': 'America/New_York', 'South Carolina': 'America/New_York', 'South Dakota': 'America/Chicago', 'Tennessee': 'America/Chicago', 'Texas': 'America/Chicago', 'Utah': 'America/Denver', 'Vermont': 'America/New_York', 'Virginia': 'America/New_York', 'Washington': 'America/Los_Angeles', 'West Virginia': 'America/New_York', 'Wisconsin': 'America/Chicago', 'Wyoming': 'America/Denver', 'District of Columbia': 'America/New_York' };
@@ -290,6 +292,13 @@
       let d = deg % 360;
       if (d < 0) d += 360;
       return d;
+    }
+
+    // Parse finite numeric inputs without treating valid zero values (0° longitude,
+    // 0° latitude, UTC+0) as missing. This is used for coordinates and time zones.
+    function finiteNumber(value, fallback) {
+      const n = typeof value === 'number' ? value : parseFloat(value);
+      return Number.isFinite(n) ? n : fallback;
     }
 
     function safeAdd(arr, signIdx, val) {
@@ -342,7 +351,7 @@
       }
 
       const lord = RASI_LORDS[signIdx];
-      if (lord === planet) return { label: 'သယံ (ကသစ်)', color: 'text-emerald-700 font-bold' };
+      if (lord === planet) return { label: 'ကိုယ်ပိုင်အိမ်', color: 'text-emerald-700 font-bold' };
 
       const rel = NATURAL_RELATIONS[planet];
       if (rel) {
@@ -419,8 +428,8 @@
       return total;
     }
     function computeShadbala(p, jd, lat, lon, ayanamsaType, nodeType) {
-      const pNext = calculateNASA_JPL_Planets(jd + 0.5, lat, lon, ayanamsaType, nodeType);
-      const pPrev = calculateNASA_JPL_Planets(jd - 0.5, lat, lon, ayanamsaType, nodeType);
+      const pNext = calculateAnalyticPlanetPositions(jd + 0.5, lat, lon, ayanamsaType, nodeType);
+      const pPrev = calculateAnalyticPlanetPositions(jd - 0.5, lat, lon, ayanamsaType, nodeType);
       const mc = mcLongitudeSB(jd, lon);
       const ic = norm360(mc + 180);
       const ayan = p.ayanamsaVal || 0;
@@ -541,7 +550,7 @@
     // CALCULATION ARCHITECTURE: specialized modules are intentionally separate.
     // Astronomy positions, Parashari/Vimshottari, KP cusp-significator logic, and
     // Western tropical methods must not be forced through a single interpretation engine.
-    function calculateNASA_JPL_Planets(jd, lat, lon, ayanamsaType, nodeType) {
+    function calculateAnalyticPlanetPositions(jd, lat, lon, ayanamsaType, nodeType) {
       lat = parseFloat(lat) || 0;
       lon = parseFloat(lon) || 0;
       ayanamsaType = ayanamsaType || 'lahiri';
@@ -800,7 +809,7 @@
         let maha=null, antar=null;
         for(const m of dashaTree){ if(midStr>=m.start&&midStr<m.end){ maha=m.lord; const a=(m.antars||[]).find(x=>midStr>=x.start&&midStr<x.end); antar=a?a.lord:null; break; } }
         let signs=null;
-        try{ const tp=calculateNASA_JPL_Planets(_jdFromDate(new Date(Y,6,1,12,0),opts.tz),opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); signs={}; ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'].forEach(k=>signs[k]=calculateVarga(tp[k],1)); }catch(e){}
+        try{ const tp=calculateAnalyticPlanetPositions(_jdFromDate(new Date(Y,6,1,12,0),opts.tz),opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); signs={}; ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'].forEach(k=>signs[k]=calculateVarga(tp[k],1)); }catch(e){}
         yearFacts.push({Y,maha,antar,signs});
       }
       const out={};
@@ -863,7 +872,7 @@
         const dashaPts=(dashaHit(maha)?1:0)+(dashaHit(antar)?2:0);
         if(dashaPts<1) continue;
         let signs=null;
-        try{ const tp=calculateNASA_JPL_Planets(_jdFromDate(new Date(Y,6,1,12,0),opts.tz),opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); signs={}; ['Saturn','Rahu','Mars'].forEach(k=>signs[k]=calculateVarga(tp[k],1)); }catch(e){}
+        try{ const tp=calculateAnalyticPlanetPositions(_jdFromDate(new Date(Y,6,1,12,0),opts.tz),opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); signs={}; ['Saturn','Rahu','Mars'].forEach(k=>signs[k]=calculateVarga(tp[k],1)); }catch(e){}
         if(!signs) continue;
         const fac=[];
         const satM=relFrom(signs.Saturn,moonSign), satL=relFrom(signs.Saturn,lagnaSign), rahM=relFrom(signs.Rahu,moonSign), marM=relFrom(signs.Mars,moonSign);
@@ -929,13 +938,13 @@
       const results=[]; const evDefs=opts.events.map(e=>({...e,def:RECT_EVENT_DEFS[e.type]})).filter(e=>e.def&&e.date);
       // event-date transits computed once per event
       evDefs.forEach(e=>{
-        try{ const tp=calculateNASA_JPL_Planets(_jdFromDate(new Date(e.date+'T12:00:00'),opts.tz),opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); e.tJup=calculateVarga(tp.Jupiter,1); e.tSat=calculateVarga(tp.Saturn,1);}catch(err){}
+        try{ const tp=calculateAnalyticPlanetPositions(_jdFromDate(new Date(e.date+'T12:00:00'),opts.tz),opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); e.tJup=calculateVarga(tp.Jupiter,1); e.tSat=calculateVarga(tp.Saturn,1);}catch(err){}
       });
       const scan=(from,to,step)=>{
         for(let mins=from;mins<=to;mins+=step){
           const d=new Date(opts.dateStr+'T00:00:00'); d.setMinutes(mins);
           const jd=_jdFromDate(d, opts.tz);
-          let bp; try{ bp=calculateNASA_JPL_Planets(jd,opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); }catch(err){ continue; }
+          let bp; try{ bp=calculateAnalyticPlanetPositions(jd,opts.lat,opts.lon,opts.ayanamsa,opts.nodeType); }catch(err){ continue; }
           const tree=calculateDashaTree(bp.Moon,d);
           let kpData=null;
           if(opts.ayanamsa==='kp'){ try{ kpData=buildKPData(bp,calculatePlacidusCusps(jd,opts.lat,opts.lon,'kp')); }catch(err){} }
@@ -1336,7 +1345,7 @@
       return { house, sign, paras };
     }
 
-    function generateKPReading(p, cusps, dashaTree) {
+    function generateKPReading(p, cusps, dashaTree, todayStr) {
       const data = buildKPData(p, cusps);
       const houses = data.houseSig.map((hs) => {
         const csl = hs.cuspSubLord;
@@ -1347,9 +1356,9 @@
         return { house: hs.house, theme: KP_HOUSE_THEMES[hs.house - 1], csl, signifies, fruit, hits, promise };
       });
       let dasha = null;
-      const active = _activeDasha(dashaTree);
+      const active = _activeDasha(dashaTree, todayStr);
       if (active) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayStr || new Date().toISOString().split('T')[0];
         const antar = (active.antars || []).find((a) => a.start <= today && a.end >= today) || null;
         dasha = {
           maha: active.lord,
@@ -1483,7 +1492,7 @@
     ];
     const ROT_HOUSE_MEANING = { 1: 'သူ့ ကိုယ်ပိုင် အခြေအနေ/စိတ်ဓာတ်', 2: 'သူ့ ငွေကြေး/မိသားစု', 3: 'သူ့ ဆက်သွယ်လိုစိတ်', 4: 'သူ့ စိတ်အေးချမ်းမှု/အိမ်', 5: 'သူ့ အချစ်စိတ်/နှလုံးသား', 6: 'အတားအဆီး/ပြိုင်ဘက် ဘက်', 7: 'သူ ကိုယ့်ကို ပြန်ကြည့်သည့် ဘက်', 8: 'လျှို့ဝှက်/ပြတ်တောက်မှု ဘက်', 9: 'သူ့ ကံ/အဝေးခရီး', 10: 'သူ့ လုပ်ငန်း/အာရုံစိုက်မှု', 11: 'သူ့ဘက် အကျိုးဆုံမှု/မျှော်လင့်ချက်', 12: 'ဆုံးရှုံး/ဝေးကွာခြင်း ဘက်' };
 
-    function calculateKPPrashnaResult(queryText, horaryNum, birthPlanets, transitPlanets, dashaTree, cusps, cfgOverride) {
+    function calculateKPPrashnaResult(queryText, horaryNum, birthPlanets, transitPlanets, dashaTree, cusps, cfgOverride, todayStr) {
       const intent = detectPrashnaIntent(queryText);
       let cfg = {
         decision: { title: 'ဆုံးဖြတ်ချက် — လုပ်သင့် / မလုပ်သင့်', houses: [1, 5, 10, 11], primary: 11, karaka: 'Jupiter / Moon' },
@@ -1519,7 +1528,7 @@
       const moonSubSig = sigOf(tMoonKP.subLord);
       const moonGood = supporting.filter((x) => moonSubSig.indexOf(x) !== -1);
       if (moonGood.length) { score += 8; evidence.push(`ဟူးရား Moon Sub Lord ${tMoonKP.subLord} သည် အကျိုးပေးအိမ် ${moonGood.join(', ')} ကို signify လုပ်၍ မေးခွန်း၏ flow ကို ထောက်ခံသည်။`); }
-      const d = _activeDasha(dashaTree);
+      const d = _activeDasha(dashaTree, todayStr);
       if (d) {
         const dSig = sigOf(d.lord);
         const dGood = supporting.filter((x) => dSig.indexOf(x) !== -1);
@@ -1670,7 +1679,7 @@
       // to that true Mahadasha start; do not incorrectly restart the Antar cycle
       // at birth (which can shift the current sub-period by months/years).
       let mahaStart = new Date(birth.getTime() - (initialLord.years - balanceYears) * YEAR_DAYS * DAY_MS);
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 18; i++) {
         const mIdx = (lordIndex + i) % 9;
         const mLord = DASHA_LORDS[mIdx] || DASHA_LORDS[0];
         const durYears = i === 0 ? balanceYears : mLord.years;
@@ -1764,7 +1773,7 @@
       const sIdx = calculateVarga(p[name], 1);
       const dignity = getPlanetaryDignity(name, sIdx);
       if (dignity.label.includes('ဥစ္စ')) return 95;
-      if (dignity.label.includes('သယံ')) return 80;
+      if (dignity.label.includes('ကိုယ်ပိုင်အိမ်')) return 80;
       if (dignity.label.includes('မိတ်')) return 65;
       if (dignity.label.includes('သမ')) return 50;
       if (dignity.label.includes('ရန်')) return 35;
@@ -1772,9 +1781,9 @@
       return 50;
     }
 
-    function _activeDasha(dashaTree) {
+    function _activeDasha(dashaTree, todayStr) {
       if (!Array.isArray(dashaTree) || dashaTree.length === 0) return null;
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayStr || new Date().toISOString().split('T')[0];
       return dashaTree.find((d) => d.start <= today && d.end >= today) || dashaTree[0];
     }
 
@@ -1795,9 +1804,9 @@
       const y=[], h=(name)=>_planetHouse(p,name), s=(name)=>calculateVarga(p[name],1);
       const add=(name,cause,result,base,planets)=>{const avg=(planets||[]).reduce((a,k)=>a+_planetStrength(p,k),0)/Math.max(1,(planets||[]).length);const score=Math.max(1,Math.min(5,Math.round((base*0.55+avg/100*2.45))));y.push({name,cause,result,stars:'★'.repeat(score)+'☆'.repeat(5-score),strength:score,planets:planets||[]});};
       const k=[1,4,7,10];
-      if([1,4,7,10].includes(h('Jupiter'))&&[3,6,8,9,11].includes(s('Jupiter'))) add('Hamsa Mahapurusha Yoga','Jupiter သည် ကိန်းအိမ်တွင် မိမိ/ဥစ္စရာသီ၌ရှိခြင်း','ပညာ၊ အကြံဉာဏ်၊ အကျင့်သီလနှင့် အာဏာဘက်တွင် ထင်ရှားနိုင်သည်။',5,['Jupiter']);
-      if(k.includes(h('Venus'))&&[1,2,6,7,11].includes(s('Venus'))) add('Malavya Mahapurusha Yoga','Venus ကိန်း + မိမိ/ဥစ္စရာသီ','အနုပညာ၊ ဆွဲဆောင်မှု၊ သက်သောင့်သက်သာနှင့် ပစ္စည်းပိုင်းဆိုင်ရာ အကျိုးပေးတတ်သည်။',5,['Venus']);
-      if(k.includes(h('Mars'))&&[0,7,10].includes(s('Mars'))) add('Ruchaka Mahapurusha Yoga','Mars ကိန်း + မိမိ/ဥစ္စရာသီ','ရဲရင့်မှု၊ ဆုံးဖြတ်ချက်၊ ဦးဆောင်မှုနှင့် လုပ်ဆောင်နိုင်စွမ်း တိုးစေသည်။',5,['Mars']);
+      if([1,4,7,10].includes(h('Jupiter'))&&[3,8,11].includes(s('Jupiter'))) add('Hamsa Mahapurusha Yoga','Jupiter သည် ကိန်းအိမ်တွင် မိမိ/ဥစ္စရာသီ၌ရှိခြင်း','ပညာ၊ အကြံဉာဏ်၊ အကျင့်သီလနှင့် အာဏာဘက်တွင် ထင်ရှားနိုင်သည်။',5,['Jupiter']);
+      if(k.includes(h('Venus'))&&[1,6,11].includes(s('Venus'))) add('Malavya Mahapurusha Yoga','Venus ကိန်း + မိမိ/ဥစ္စရာသီ','အနုပညာ၊ ဆွဲဆောင်မှု၊ သက်သောင့်သက်သာနှင့် ပစ္စည်းပိုင်းဆိုင်ရာ အကျိုးပေးတတ်သည်။',5,['Venus']);
+      if(k.includes(h('Mars'))&&[0,7,9].includes(s('Mars'))) add('Ruchaka Mahapurusha Yoga','Mars ကိန်း + မိမိ/ဥစ္စရာသီ','ရဲရင့်မှု၊ ဆုံးဖြတ်ချက်၊ ဦးဆောင်မှုနှင့် လုပ်ဆောင်နိုင်စွမ်း တိုးစေသည်။',5,['Mars']);
       if(k.includes(h('Mercury'))&&[2,5].includes(s('Mercury'))) add('Bhadra Mahapurusha Yoga','Mercury ကိန်း + မိမိရာသီ','ဉာဏ်၊ စကား၊ စီးပွားရေးနှင့် နည်းပညာကျွမ်းကျင်မှုကို အားပေးသည်။',5,['Mercury']);
       if(k.includes(h('Saturn'))&&[6,9,10].includes(s('Saturn'))) add('Sasa Mahapurusha Yoga','Saturn ကိန်း + မိမိ/ဥစ္စရာသီ','တာဝန်ယူမှု၊ အဖွဲ့အစည်းအာဏာနှင့် အသက်ကြီးလာလေ ခိုင်မာလာလေဖြစ်စေသည်။',5,['Saturn']);
       if(s('Sun')===s('Mercury')) add('Budha-Aditya Yoga','Sun + Mercury ပူးယှဉ်ခြင်း','ဉာဏ်၊ စီမံခန့်ခွဲမှု၊ ဆက်သွယ်ရေးနှင့် analytical thinking အားကောင်းစေသည်။',3,['Sun','Mercury']);
@@ -1809,8 +1818,23 @@
       if(moonPrev.length)add('Anapha Yoga','Moon မှ ၁၂ တန့်တွင် ဂြိုဟ်ရှိခြင်း','ကိုယ်ပိုင်အရည်အချင်းနှင့် အတွင်းစွမ်းအား ထင်ရှားနိုင်သည်။',3,moonPrev);
       if(moonOthers.length&&moonPrev.length)add('Durudhara Yoga','Moon ၏ ၂/၁၂ တန့်နှစ်ဖက်တွင် ဂြိုဟ်ရှိခြင်း','အရင်းအမြစ်နှင့် အတွေ့အကြုံကို ဟန်ချက်ညီစွာ အသုံးချနိုင်မှု။',4,[...moonOthers,...moonPrev]);
       if([2,5,9,11].includes(h('Jupiter'))&&[2,5,9,11].includes(h('Venus')))add('Dhana Pattern','Jupiter/Venus သည် ဓနအိမ်များကို အားပေးခြင်း','ဝင်ငွေ၊ ပိုင်ဆိုင်မှုနှင့် အခွင့်အရေးများကို စုစည်းနိုင်သော pattern ဖြစ်သည်။',4,['Jupiter','Venus']);
-      const l1=_lordOfHouse(p,1),l5=_lordOfHouse(p,5),l9=_lordOfHouse(p,9),l10=_lordOfHouse(p,10);
-      if(l1&&l5&&l9&&[l5,l9].includes(l10))add('Raja Yoga Pattern','Trikona lord နှင့် Kendra lord ဆက်နွယ်မှု','အာဏာ၊ အောင်မြင်မှုနှင့် အခွင့်အရေးကို တစ်ချိန်ချိန်တွင် ထင်ရှားစေနိုင်သည်။',4,[l1,l5,l9,l10]);
+      // Raja-yoga check: test a real Kendra (4/7/10) lord against a Trikona
+      // (5/9) lord. A shared lord is a yogakaraka; distinct lords must associate
+      // by conjunction, mutual house exchange, or a classical graha aspect.
+      const kendraLords = [...new Set([4, 7, 10].map((hh) => _lordOfHouse(p, hh)))];
+      const trikonaLords = [...new Set([5, 9].map((hh) => _lordOfHouse(p, hh)))];
+      const ownedHouses = (planet) => Array.from({ length: 12 }, (_, i) => i + 1).filter((hh) => _lordOfHouse(p, hh) === planet);
+      const rajaPairs = [];
+      kendraLords.forEach((kl) => trikonaLords.forEach((tl) => {
+        if (!kl || !tl) return;
+        const kh = h(kl), th = h(tl);
+        const sharedLord = kl === tl;
+        const conjunction = kh === th;
+        const exchange = ownedHouses(kl).includes(th) && ownedHouses(tl).includes(kh);
+        const aspect = _aspectHouses(p, kl).includes(th) || _aspectHouses(p, tl).includes(kh);
+        if (sharedLord || conjunction || exchange || aspect) rajaPairs.push([kl, tl]);
+      }));
+      if (rajaPairs.length) add('Raja Yoga Pattern', 'Kendra အရှင် (၄/၇/၁၀) နှင့် Trikona အရှင် (၅/၉) တို့၏ ဆက်နွယ်မှု', 'ယောဂအဖြစ် သတ်မှတ်နိုင်သည့် အခြေခံဆက်နွယ်မှု ရှိသည်။ အကျိုးပေးနိုင်မှုကို အရှင်ဂြိုဟ်များ၏ အား၊ အိမ်တည်နေရာနှင့် ဒသာတို့ဖြင့် ထပ်မံစစ်ဆေးရမည်။', 4, [...new Set(rajaPairs.flat())]);
       if(!moonOthers.length&&!moonPrev.length)add('Kemadruma Yoga','Moon ၏ ၂/၁၂ တန့်တွင် အဓိကဂြိုဟ်မရှိခြင်း','စိတ်ပိုင်းဆိုင်ရာ မတည်ငြိမ်မှု သို့မဟုတ် ကိုယ့်အားကိုယ်ကိုးရမှုကို ဖြစ်စေနိုင်သော်လည်း cancellation factors များကိုပါ စစ်ရမည်။',2,['Moon']);
       return y;
     }
@@ -1818,33 +1842,33 @@
     // ===== v6.20: wealth pattern + strict exceptional gate + nakshatra layer =====
     const PLANET_MY = { Sun: 'တနင်္ဂနွေ', Moon: 'တနင်္လာ', Mars: 'အင်္ဂါ', Mercury: 'ဗုဒ္ဓဟူး', Jupiter: 'ကြာသပတေး', Venus: 'သုကြ', Saturn: 'စနေ', Rahu: 'ရာဟု', Ketu: 'ကိတ်', Lagna: 'လဂ်' };
     const NAKSHATRA_INFO = [
-      ['Ashwini', 'Ashwini Kumaras', 'မြင်းခေါင်း', 'လျင်မြန်, အစပျိုး အား ကောင်း, ကုသနိုင် စွမ်း ရှိ'],
-      ['Bharani', 'Yama', 'အိုး / ဝမ်း', 'တာဝန် ထမ်း နိုင်, စည်းကမ်း နဲ့ ဖန်တီး မှု ရော'],
-      ['Krittika', 'Agni', 'မီးလျှံ / ဓား', 'ထက် မြက်, သန့်စင်, ဝေဖန် မှု ပြင်း'],
-      ['Rohini', 'Brahma', 'ရထား / ပညောင်ပင်', 'ကြီးထွား, အလှ, မြဲမြံ — ဆွဲဆောင် မှု ရှိ'],
-      ['Mrigashirsha', 'Soma', 'သမင်ခေါင်း', 'ရှာဖွေ, သိမ်မွေ, စူးစမ်း လိုစိတ် များ'],
-      ['Ardra', 'Rudra', 'မျက်ရည် စက်', 'မုန်တိုင်း နောက် ပြန်လည် သစ် — ကြိုးစား မှု ပြင်း'],
-      ['Punarvasu', 'Aditi', 'မြှား ကျည် တောက်', 'ပြန် လည် ရှင်သန်, အကောင်း မြင်, ပြန် စ နိုင်'],
-      ['Pushya', 'Brihaspati', 'ပန်း / ကြာပန်း', 'ကျွေး မွေး စောင့်ရှောက်, ကုသိုလ် — နက္ခတ် များထဲ အထူး ကောင်း သော'],
-      ['Ashlesha', 'Naga', 'ခွေ နေ တဲ့ မြွေ', 'အတွင်း အမြင် ထက်, ဆန်းကြယ်, ရစ်ပတ် နိုင်'],
-      ['Magha', 'Pitris (ဘိုးဘေး)', 'ပလ္လင်', 'အာဏာ, ဘိုးဘေး အမွေ, ဂုဏ် သိက္ခာ'],
-      ['Purva Phalguni', 'Bhaga', 'ပုခက်', 'အချစ်, အပန်းဖြေ, ဖန်တီး မှု ရှိ'],
-      ['Uttara Phalguni', 'Aryaman', 'အိပ်ရာ နောက် ခြေ', 'မိတ် ဖက်, ကတိ, စေတနာ — တည် မြဲ တဲ့ ဆက်ဆံရေး'],
-      ['Hasta', 'Savitar', 'လက်ဖဝါး', 'လက် မှု ကျွမ်းကျင်, စီမံ တတ်'],
-      ['Chitra', 'Vishwakarma', 'ပုလဲ / ကျောက် မျက်', 'အနုပညာ ပုံဖော် မှု, ဒီဇိုင်း, စွဲ မက် ဖွယ်'],
-      ['Swati', 'Vayu', 'လေ တိုက် မျှောက် ပင် ပေါက်', 'လွတ်လပ်, လိုက် လျော ညီထွေ, ကုန်သွယ် တတ်'],
-      ['Vishakha', 'Indra-Agni', 'အောင်ပွဲ မုခ် ဦး', 'ရည်မှန်းချက် ကြီး, အောင်နိုင် စွမ်း, အာရုံ စိုက်'],
-      ['Anuradha', 'Mitra', 'ကြာပန်း / တောင် ဝှေး', 'မိတ် ဆွေ, စည်းကမ်း နဲ့ ကြိုးစား မှု မှ အောင်မြင်'],
-      ['Jyeshtha', 'Indra', 'နားကပ် / ထီး', 'အကြီးဆုံး, ကာကွယ်, တာဝန် ယူ တတ်'],
-      ['Mula', 'Nirriti', 'ချည် ထားတဲ့ အမြစ်', 'အမြစ် ရှာ ဖွေ, ဖြုတ် ချ ပြောင်း လဲ နိုင်'],
-      ['Purva Ashadha', 'Apas (ရေ)', 'ဆင် စွယ် / ယပ်တောင်', 'ယုံကြည် ချက် ခိုင်မာ, စိတ် ဓာတ် ပြင်း, အောင် နိုင်'],
+      ['Ashwini', 'Ashwini Kumaras', 'မြင်းခေါင်း', 'လျင်မြန်စွာ စတင်လုပ်ဆောင်နိုင်မှုနှင့် ကုသပေးလိုစိတ်'],
+      ['Bharani', 'Yama', 'ယောနိ / အိုး', 'တာဝန်ယူမှု၊ စည်းကမ်းနှင့် ဖန်တီးနိုင်စွမ်း'],
+      ['Krittika', 'Agni', 'မီးတောက် / ဓား', 'ထက်မြက်မှု၊ ခွဲခြားစိစစ်နိုင်မှုနှင့် ဝေဖန်တတ်မှု'],
+      ['Rohini', 'Brahma', 'လှည်း / ရထား', 'ကြီးထွားမှု၊ အလှအပနှင့် တည်မြဲမှု'],
+      ['Mrigashirsha', 'Soma', 'သမင်ခေါင်း', 'စူးစမ်းရှာဖွေလိုစိတ်၊ နူးညံ့မှုနှင့် သိချင်စိတ်'],
+      ['Ardra', 'Rudra', 'မျက်ရည် စက်', 'အပြောင်းအလဲများမှတစ်ဆင့် ပြန်လည်တည်ဆောက်နိုင်မှု'],
+      ['Punarvasu', 'Aditi', 'မြှားအိတ်', 'ပြန်လည်စတင်နိုင်မှု၊ မျှော်လင့်ချက်နှင့် ပြန်လည်ထူထောင်မှု'],
+      ['Pushya', 'Brihaspati', 'ပန်း / ကြာပန်း', 'ပြုစုစောင့်ရှောက်မှု၊ အထောက်အပံ့ပေးမှုနှင့် တိုးတက်မှု'],
+      ['Ashlesha', 'Naga', 'ခွေကွေးနေသော မြွေ', 'နက်ရှိုင်းသောအမြင်၊ လျှို့ဝှက်မှုနှင့် စိတ်ပိုင်းဆိုင်ရာ ချိတ်ဆက်မှု'],
+      ['Magha', 'Pitris (ဘိုးဘေး)', 'ပလ္လင်', 'မျိုးရိုးအမွေအနှစ်၊ ဂုဏ်သိက္ခာနှင့် ဦးဆောင်မှု'],
+      ['Purva Phalguni', 'Bhaga', 'ပုခက် / အိပ်ရာရှေ့ခြေ', 'အချစ်၊ အပန်းဖြေမှုနှင့် ဖန်တီးမှု'],
+      ['Uttara Phalguni', 'Aryaman', 'အိပ်ရာနောက်ခြေ', 'မိတ်ဖက်မှု၊ ကတိတည်မှုနှင့် ရေရှည်ဆက်ဆံရေး'],
+      ['Hasta', 'Savitar', 'လက်ဖဝါး', 'လက်တွေ့ကျွမ်းကျင်မှု၊ စီမံခန့်ခွဲမှုနှင့် လက်မှုပညာ'],
+      ['Chitra', 'Vishwakarma', 'ပုလဲ / ကျောက်မျက်', 'ဒီဇိုင်း၊ အနုပညာနှင့် ထင်ရှားသောဖန်တီးမှု'],
+      ['Swati', 'Vayu', 'လေတိုက်လှုပ်ရှားနေသော အပင်', 'လွတ်လပ်မှု၊ လိုက်လျောညီထွေမှုနှင့် ကုန်သွယ်ရေး'],
+      ['Vishakha', 'Indra-Agni', 'အောင်ပွဲမုခ်ဦး', 'ရည်မှန်းချက်၊ ဇွဲလုံ့လနှင့် ပန်းတိုင်အပေါ် အာရုံစိုက်မှု'],
+      ['Anuradha', 'Mitra', 'ကြာပန်း', 'မိတ်ဆွေမှု၊ စည်းကမ်းနှင့် ကြိုးစားအားထုတ်မှု'],
+      ['Jyeshtha', 'Indra', 'နားကပ် / ထီး', 'တာဝန်ယူမှု၊ ကာကွယ်ပေးမှုနှင့် ဦးဆောင်မှု'],
+      ['Mula', 'Nirriti', 'အမြစ်စု', 'အကြောင်းရင်းအမြစ်ကို ရှာဖွေခြင်းနှင့် မလိုအပ်သည့်အရာကို ဖယ်ရှားပြောင်းလဲခြင်း'],
+      ['Purva Ashadha', 'Apas (ရေ)', 'ဆင်စွယ် / ယပ်တောင်', 'ယုံကြည်ချက်ခိုင်မာမှု၊ ဇွဲနှင့် ပြိုင်ဆိုင်လိုစိတ်'],
       ['Uttara Ashadha', 'Vishvadevas', 'ဆင် စွယ်', 'တည် မြဲ တဲ့ အောင်ပွဲ, သိက္ခာ — နောက်ကျမှ ထွန်း'],
-      ['Shravana', 'Vishnu', 'နား / ခြေရာ သုံး ခု', 'နားထောင် သင်ယူ, ကျော်ကြား — အများ သိ လာ'],
-      ['Dhanishta', 'Vasus', 'ဗုံ / ပလွေ', 'စည်းချက်, ဓန စုစည်း, အဖွဲ့ သဟဇာတ'],
-      ['Shatabhisha', 'Varuna', 'စက်ဝိုင်း ဗလာ', 'ကုသ မှု, လျှို့ဝှက်, ကိုယ်ပိုင် လမ်း'],
-      ['Purva Bhadrapada', 'Aja Ekapada', 'အသုဘ ခုတင် ရှေ့ ခြေ', 'စိတ် ပြင်းထန်, ဝိညာဉ် မီး, အစွန် ရောက် ပြောင်း လဲ'],
-      ['Uttara Bhadrapada', 'Ahirbudhnya', 'အသုဘ ခုတင် နောက် ခြေ', 'နက်ရှိုင်း, တည်ငြိမ်, အတွင်း စွမ်းအင် ထိန်း'],
-      ['Revati', 'Pushan', 'ငါး / ဗုံ', 'ပြည့်စုံ, ကြင်နာ, ခရီး လုံ ခြုံ — အဆုံး သတ် ကောင်း, ဓန အကျိုး ရှိ']
+      ['Shravana', 'Vishnu', 'နား / ခြေရာသုံးခု', 'နားထောင်သင်ယူမှု၊ အသိပညာမျှဝေမှုနှင့် သတင်းပျံ့နှံ့မှု'],
+      ['Dhanishta', 'Vasus', 'ဗုံ / ပလွေ', 'စည်းချက်၊ အဖွဲ့လိုက်လုပ်ဆောင်မှုနှင့် အရင်းအမြစ်စုစည်းမှု'],
+      ['Shatabhisha', 'Varuna', 'စက်ဝိုင်း', 'သုတေသန၊ ကုသရေးနှင့် ကိုယ်ပိုင်လမ်းကြောင်း'],
+      ['Purva Bhadrapada', 'Aja Ekapada', 'အိပ်ရာရှေ့ခြေ', 'စိတ်အားထက်သန်မှု၊ အတွေးအခေါ်နက်ရှိုင်းမှုနှင့် အကြီးစားပြောင်းလဲမှု'],
+      ['Uttara Bhadrapada', 'Ahirbudhnya', 'အိပ်ရာနောက်ခြေ', 'တည်ငြိမ်မှု၊ နက်ရှိုင်းမှုနှင့် အတွင်းအားကို ထိန်းသိမ်းနိုင်မှု'],
+      ['Revati', 'Pushan', 'ငါး / ဗုံ', 'ကြင်နာမှု၊ လုံခြုံစွာ လမ်းညွှန်ပေးမှုနှင့် ကောင်းမွန်သော အဆုံးသတ်']
     ];
     function nakshatraRows(p) {
       const keys = ['Lagna', 'Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
@@ -1886,7 +1910,7 @@
       if (H('Rahu') === H('Moon') || H('Rahu') === 1 || H('Rahu') === 10) lines.push('ရာဟု ရဲ့ လှုံ့ ဆော် မှု ပြင်း တယ် — ရည်မှန်းချက် ကြီး တယ်, မကျေနပ် စိတ် က တွန်း အား ဖြစ် တတ် တယ်, အစွဲ ကြီး သွား တာ ကို တော့ သတိ ထား ရ မယ်။');
       return lines;
     }
-    function wealthPatternAnalysis(p, yogas, dashaTree, wealthScore) {
+    function wealthPatternAnalysis(p, yogas, dashaTree, wealthScore, todayStr) {
       const H = (n) => _planetHouse(p, n), L = (h) => _lordOfHouse(p, h), S = (n) => _planetStrength(p, n);
       const inH = (n, arr) => arr.includes(H(n));
       const lordIn = (h, arr) => arr.includes(H(L(h)));
@@ -1930,7 +1954,7 @@
       let homeLine = null;
       if (s4 >= 65 && sav4 >= 30) homeLine = 'အိမ် အဆင့် မြင့် (ဇိမ်ခံ အဆင့်) ပိုင် နိုင် တဲ့ ပုံစံ ရှိ တယ်။';
       else if (s4 >= 65 || inH('Jupiter', [4]) || inH('Venus', [4])) homeLine = 'အိမ် ပိုင် ဆိုင် မှု အား ကောင်း — အိမ် ကောင်း ကောင်း ပိုင် နိုင် တဲ့ ပုံစံ ရှိ တယ်။';
-      if (homeLine) { try { const _act = _activeDasha(dashaTree); const _today = new Date().toISOString().split('T')[0]; const _curA = _act ? (_act.antars || []).find((a) => a.start <= _today && a.end >= _today) : null; if (_act && (_act.lord === L(4) || (_curA && _curA.lord === L(4)))) homeLine += ` (၄ တန့် အရှင် ${PLANET_MY[L(4)]} ဒဿာ ကာလ ဖြစ် လို့ ခု အချိန် မှာ ပိုင် ဆိုင် မှု ခိုင် လာ မယ့် အချိန် နဲ့ ကိုက် နေ တယ်)`; } catch (e) {} assets.push(homeLine); }
+      if (homeLine) { try { const _act = _activeDasha(dashaTree, todayStr); const _today = todayStr || new Date().toISOString().split('T')[0]; const _curA = _act ? (_act.antars || []).find((a) => a.start <= _today && a.end >= _today) : null; if (_act && (_act.lord === L(4) || (_curA && _curA.lord === L(4)))) homeLine += ` (၄ တန့် အရှင် ${PLANET_MY[L(4)]} ဒဿာ ကာလ ဖြစ် လို့ ခု အချိန် မှာ ပိုင် ဆိုင် မှု ခိုင် လာ မယ့် အချိန် နဲ့ ကိုက် နေ တယ်)`; } catch (e) {} assets.push(homeLine); }
       else if (s4 >= 50) assets.push('အိမ် တစ်လုံး ပိုင် နိုင် တဲ့ အခြေခံ ရှိ တယ်။');
       else assets.push('အိမ် ပိုင် ဆိုင် မှု က အချိန် ယူ တည်ဆောက် မှ ရမယ့် ပုံစံ — အစောပိုင်း မှာ ငှား နေ ရတာ များ နိုင် တယ်။');
       if (lordIn(4, [2, 11]) || (p && ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'].filter((n) => H(n) === 4).length >= 2)) assets.push((S('Venus') >= 65 && s4 >= 60) ? 'ဇိမ်ခံ ကွန်ဒို (တန်ဖိုး မြင့် အဆင့်) ပိုင် နိုင် တဲ့ အရိပ် ရှိ တယ်။' : 'ကွန်ဒို / တိုက်ခန်း ပါ ထပ် ပိုင် နိုင် တဲ့ အရိပ် ရှိ တယ်။');
@@ -1945,7 +1969,7 @@
       if (Array.isArray(dashaTree)) {
         const windLords = [...new Set([L(5), L(8), L(11)])];
         const riseLords = [...new Set([L(2), L(9), L(10)])];
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayStr || new Date().toISOString().split('T')[0];
         const cands = [];
         for (const m of dashaTree) {
           for (const a of (m.antars || [])) {
@@ -1987,7 +2011,7 @@
         const gatePct = Math.round(26 * fScore + 12 * fStack + 12 * fStrong + 8 * fOwnEx + 8 * fD9 + 8 * fLagna + 6 * fCombust + 12 * fConc + 8 * fStruct);
         let band = null, gatePctOut = null;
         if (wealthScore >= 78 && gatePct >= 60) {
-          const BANDS = ['အလွန်မြင့်သော ဓနတည်ဆောက်နိုင်မှု အလားအလာ', 'အလွန်မြင့်သော ဓနတည်ဆောက်နိုင်မှု အလားအလာ', 'အလွန်မြင့်သော ဓနတည်ဆောက်နိုင်မှု အလားအလာ', 'ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အလားအလာ', 'ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အလားအလာ', 'ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အလားအလာ', 'ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အလားအလာ'];
+          const BANDS = ['အားကောင်းသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'အလွန်ကောင်းသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'အလွန်ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'အလွန်ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'အလွန်ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု'];
           const power = gatePct * 0.6 + wealthScore * 0.6;
           let idx = power >= 112 ? 4 : power >= 102 ? 3 : power >= 92 ? 2 : power >= 82 ? 1 : 0;
           if (gatePct >= 92 && wealthScore >= 97) idx = 5;
@@ -2009,31 +2033,37 @@
       return { sources, assets, windows, exceptional };
     }
 
-    // v6.21: Transparent, scenario-based USD wealth estimate. This is an interpretive
-    // astrology feature, not a statistically validated prediction or financial advice.
-    function calculateWealthEstimate(score, economy, currentNetWorth, annualIncome) {
+    // Financial scenario engine is intentionally separate from astrology scoring.
+    // A chart-derived score must never be converted directly into a dollar amount.
+    function calculateWealthEstimate(economy, currentNetWorth, annualIncome, savingsRate, horizonYears) {
       const cfg = {
-        high: { label: 'ဖွံ့ဖြိုးပြီး / High-income economy', factor: 1.00, savings: 1.00 },
-        upper: { label: 'Upper-middle-income economy', factor: 0.78, savings: 0.92 },
-        lower: { label: 'Lower-middle-income economy', factor: 0.56, savings: 0.82 },
-        low: { label: 'Low-income / developing economy', factor: 0.40, savings: 0.72 }
-      }[economy] || { label: 'Lower-middle-income economy', factor: 0.56, savings: 0.82 };
-      const s = Math.max(1, Math.min(100, Number(score) || 1));
-      const nw = Math.max(0, Number(currentNetWorth) || 0);
-      const income = Math.max(0, Number(annualIncome) || 0);
-      const hasInputs = String(currentNetWorth).trim() !== '' || String(annualIncome).trim() !== '';
-      if (hasInputs) {
-        // Ten-year illustrative accumulation scenario. Existing net worth is not
-        // discounted by country; only the assumed new accumulation varies.
-        const chartFactor = 0.70 + (s / 100) * 0.60;
-        const lowAdd = income * 10 * 0.05 * chartFactor * cfg.savings;
-        const highAdd = income * 10 * 0.20 * chartFactor * cfg.savings;
-        return { low: Math.round((nw + lowAdd) / 1000) * 1000, high: Math.round((nw + highAdd) / 1000) * 1000, mode: 'input', economy: cfg.label, score: s };
+        high: { label: 'ဖွံ့ဖြိုးပြီး / High-income economy', defaultSavingsRate: 15 },
+        upper: { label: 'Upper-middle-income economy', defaultSavingsRate: 12 },
+        lower: { label: 'Lower-middle-income economy', defaultSavingsRate: 8 },
+        low: { label: 'Low-income / developing economy', defaultSavingsRate: 5 }
+      }[economy] || { label: 'Lower-middle-income economy', defaultSavingsRate: 8 };
+      const hasNW = String(currentNetWorth ?? '').trim() !== '';
+      const hasIncome = String(annualIncome ?? '').trim() !== '';
+      const nw = Math.max(0, finiteNumber(currentNetWorth, 0));
+      const income = Math.max(0, finiteNumber(annualIncome, 0));
+      const savingsRateProvided = String(savingsRate ?? '').trim() !== '';
+      const rate = Math.max(0, Math.min(100, finiteNumber(savingsRate, cfg.defaultSavingsRate))) / 100;
+      const years = Math.max(1, Math.min(80, Math.round(finiteNumber(horizonYears, 10))));
+      if (!hasNW && !hasIncome) {
+        return { low: null, high: null, mode: 'insufficient', economy: cfg.label, savingsRate: rate * 100, savingsRateProvided, years };
       }
-      // Broad, deliberately overlapping bands; the country factor is only a
-      // contextual scenario adjustment, not a claim that nationality sets wealth.
-      const bands = s >= 82 ? [500000, 5000000] : s >= 68 ? [150000, 1500000] : s >= 54 ? [50000, 500000] : s >= 40 ? [10000, 150000] : [0, 50000];
-      return { low: Math.round(bands[0] * cfg.factor / 1000) * 1000, high: Math.round(bands[1] * cfg.factor / 1000) * 1000, mode: 'chart', economy: cfg.label, score: s };
+      if (hasNW && !hasIncome) {
+        return { low: nw, high: nw, mode: 'current', economy: cfg.label, savingsRate: rate * 100, savingsRateProvided, years };
+      }
+      // If current net worth is omitted, the projection starts at $0 and says so.
+      // Low case: no investment return. High case: illustrative 5% nominal annual return.
+      // Both assume annual contributions at year-end; taxes, fees and inflation are excluded.
+      const start = hasNW ? nw : 0;
+      const annualSavings = income * rate;
+      const low = start + annualSavings * years;
+      const r = 0.05;
+      const high = start * Math.pow(1 + r, years) + (r === 0 ? annualSavings * years : annualSavings * ((Math.pow(1 + r, years) - 1) / r));
+      return { low: Math.round(low / 100) * 100, high: Math.round(high / 100) * 100, mode: 'projection', economy: cfg.label, savingsRate: rate * 100, savingsRateProvided, years, initialAssetsProvided: hasNW, annualIncomeProvided: hasIncome, returnLow: 0, returnHigh: 5 };
     }
     function formatUSD(value) {
       const n = Math.max(0, Number(value) || 0);
@@ -2042,35 +2072,43 @@
       return '$' + Math.round(n).toLocaleString('en-US');
     }
 
-    function generateLifeOverview(birthPlanets, ayanamsa, dashaTree, yogas) {
+    function generateLifeOverview(birthPlanets, ayanamsa, dashaTree, yogas, todayStr) {
       if (!birthPlanets || typeof birthPlanets.Lagna !== 'number') return {netWorthTier:'',netWorthDesc:'',pillars:{},evidence:[]};
       const houses = {};
       ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'].forEach(k=>houses[k]=_planetHouse(birthPlanets,k));
       const lord2=_lordOfHouse(birthPlanets,2), lord5=_lordOfHouse(birthPlanets,5), lord9=_lordOfHouse(birthPlanets,9), lord10=_lordOfHouse(birthPlanets,10), lord11=_lordOfHouse(birthPlanets,11);
       const wealthH=[2,5,9,11].reduce((n,h)=>n+([2,5,9,11].includes(_planetHouse(birthPlanets,_lordOfHouse(birthPlanets,h)))?1:0),0);
       const wealthPlanets=['Jupiter','Venus','Mercury','Saturn'].reduce((n,k)=>n+(_planetStrength(birthPlanets,k)/100),0);
+      // Dedicated D2 Hora pass: use the divisional signs independently from D1.
+      // The D2 signal informs the interpretive wealth index only; it never becomes USD.
+      const d2Planets = {};
+      Object.keys(birthPlanets).forEach((k) => { if (typeof birthPlanets[k] === 'number' && k !== 'ayanamsaVal') d2Planets[k] = calculateVarga(birthPlanets[k], 2) * 30 + (norm360(birthPlanets[k]) % 30); });
+      const d2WealthLords = [2, 11].reduce((n, h) => n + ([2, 5, 9, 11].includes(_planetHouse(d2Planets, _lordOfHouse(d2Planets, h))) ? 1 : 0), 0);
+      const d2BeneficSupport = ['Jupiter', 'Venus', 'Mercury'].filter((k) => [1, 2, 5, 9, 10, 11].includes(_planetHouse(d2Planets, k))).length;
+      const d2Score = Math.min(8, d2WealthLords * 2 + d2BeneficSupport);
+      const d2Evidence = `D2 Hora အညွှန်း — ၂/၁၁ တန့်အရှင်များအနက် ${d2WealthLords}/2 သည် ဓနဆိုင်ရာ တန့်များတွင် ရှိပြီး Jupiter/Venus/Mercury အနက် ${d2BeneficSupport}/3 သည် အထောက်အပံ့ရှိသည့် တန့်များတွင် ရှိသည်။`;
       const dhanaYogaCount=(yogas||[]).filter(y=>/Dhana|Lakshmi|Vasumati|Chandra-Mangala|Raja/i.test(y.name)).length;
       let savPts=0, aspectPts=0, pariPts=0, d9Pts=0;
       try { const _av2=computeAshtakavarga(birthPlanets); const _ls=calculateVarga(birthPlanets.Lagna,1); [2,5,9,11].forEach((h)=>{ const sv=_av2.sav[(_ls+h-1)%12]||25; savPts+=Math.max(0,Math.min(2.5,(sv-24)/3)); }); } catch(e) {}
       try { let _hits=0; ['Jupiter','Venus','Mercury','Moon'].forEach((n)=>{ _aspectHouses(birthPlanets,n).forEach((h)=>{ if([2,5,9,11].includes(h)) _hits++; }); }); aspectPts=Math.min(8,_hits*1.5); } catch(e) {}
       try { const _hs=[1,2,5,9,10,11]; for(let i=0;i<_hs.length;i++) for(let j=i+1;j<_hs.length;j++){ const a=_lordOfHouse(birthPlanets,_hs[i]), b=_lordOfHouse(birthPlanets,_hs[j]); if(_planetHouse(birthPlanets,a)===_hs[j] && _planetHouse(birthPlanets,b)===_hs[i] && a!==b) pariPts+=4; } pariPts=Math.min(8,pariPts); } catch(e) {}
       try { [2,11].forEach((h)=>{ const ld=_lordOfHouse(birthPlanets,h); const d9v=calculateVarga(birthPlanets[ld],9); const d1v=calculateVarga(birthPlanets[ld],1); if(d9v===d1v || _ownSignsOf(ld).includes(d9v)) d9Pts+=3; }); } catch(e) {}
-      const _scoreV1=45+wealthH*7+wealthPlanets*8+Math.min(15,dhanaYogaCount*4);
-      const _scoreV2=30+wealthH*6+wealthPlanets*6+savPts+aspectPts+pariPts+Math.min(12,dhanaYogaCount*4)+d9Pts;
+      const _scoreV1=45+wealthH*7+wealthPlanets*8+Math.min(15,dhanaYogaCount*4)+d2Score*1.5;
+      const _scoreV2=30+wealthH*6+wealthPlanets*6+savPts+aspectPts+pariPts+Math.min(12,dhanaYogaCount*4)+d9Pts+d2Score;
       const wealthScore=Math.max(1,Math.min(100,Math.round(Math.max(_scoreV1,_scoreV2))));
       const tier=wealthScore>=82?'Very Strong — ဓနဆိုင်ရာ အခြေခံအချက်များ အားကောင်း':wealthScore>=68?'Strong — ဓနဆိုင်ရာ အခြေခံအချက်များ ကောင်း':wealthScore>=54?'Moderate — ဓနဆိုင်ရာ အချက်များ အလယ်အလတ်':wealthScore>=40?'Mixed — အားသာချက်/အတားအဆီး ရောနှော':'Limited — ဓနဆိုင်ရာ အားသာချက်များ ပိုမိုတည်ဆောက်ရန်လို';
-      const active=_activeDasha(dashaTree);
+      const active=_activeDasha(dashaTree, todayStr);
       const wealthRoute=`၂/၅/၉/၁၁ တန့်များနှင့် ၎င်းတို့၏ အရှင်များကို အဓိကထားဖတ်ရမည်။ ${_lordSignificatorText(birthPlanets,2)} ${_lordSignificatorText(birthPlanets,11)}`;
       const pillars={
         lifePath:`လဂ် ${RASI_NAMES_MY[calculateVarga(birthPlanets.Lagna,1)]} ဖြစ်ပြီး ဘဝတိုးတက်မှုသည် “အခွင့်အရေးတစ်ကြိမ်ရခြင်း” ထက် ကိုယ်တိုင်တည်ဆောက်ပြီး အဆင့်ဆင့်တက်ခြင်းဘက်ကို ပိုညွှန်သည်။ ဂြိုဟ်အားအခြေအနေကြောင့် အကျိုးပေးသည့်အရာနှင့် အတားအဆီးကို သီးခြားဖတ်ရန်လိုသည်။`,
         career:`၁၀ တန့်နှင့် ၁၀ တန့်အရှင် ${lord10} ၏နေရာ၊ Star/Sub-Lord နှင့် လက်ရှိ ဒသာတို့ပေါင်းစပ်ဖတ်လျှင် အလုပ်အကိုင်ကံသည် “ရာထူး” တစ်ခုတည်းမဟုတ်ဘဲ ${[10,11].includes(houses[lord10])?'အာဏာ/အောင်မြင်မှုကို ကိုယ်တိုင်တည်ဆောက်နိုင်ခြင်း':'အလုပ်ပုံစံပြောင်းလဲခြင်းနှင့် အတွေ့အကြုံမှတစ်ဆင့် တက်လာခြင်း'} ပိုထင်ရှားသည်။`,
-        wealth:`${wealthRoute} ဓနအကျိုးပေးအဆင့် ${wealthScore}/100 (${_factorLabel(wealthScore)}) ဖြစ်သည်။ ငွေဝင်နိုင်ခြင်းနှင့် ငွေကို ထိန်းသိမ်းနိုင်ခြင်းကို သီးခြားကြည့်ရမည်; ဒသာနှင့် Transit က trigger ဖြစ်မှ promise က အကောင်အထည်ဖော်ရန် ပိုနီးစပ်သည်။`,
+        wealth:`${wealthRoute} D2 Hora အထောက်အပံ့ကိုလည်း သီးခြားထည့်သွင်းစစ်ထားသည်။ ဓနအကျိုးပေးအဆင့် ${wealthScore}/100 (${_factorLabel(wealthScore)}) ဖြစ်သည်။ ငွေဝင်နိုင်ခြင်းနှင့် ငွေကို ထိန်းသိမ်းနိုင်ခြင်းကို သီးခြားကြည့်ရမည်; ဒသာနှင့် Transit က trigger ဖြစ်မှ promise က အကောင်အထည်ဖော်ရန် ပိုနီးစပ်သည်။`,
         education:`၄/၅/၉ တန့်နှင့် Mercury/Jupiter ၏အားကို အခြေခံဖတ်ရမည်။ ပညာရေးတွင် အားကောင်းသောအချက်ရှိလျှင် သင်ယူနိုင်စွမ်းထက် အသုံးချနိုင်စွမ်းက နောက်ပိုင်းအကျိုးပေးကို ဆုံးဖြတ်မည်။`,
         love:`၅ တန့်သည် attraction/romance၊ ၇ တန့်သည် partnership ဖြစ်သဖြင့် နှစ်ခုကို မရောသင့်ပါ။ လက်ရှိ chart သည် ${houses.Venus===5?'ချစ်ခြင်းနှင့် ဖန်တီးမှုကို အားကောင်းစွာဖော်ပြ':'relationship ကို အခြေအနေ၊ အချိန်နှင့် နှစ်ဦးဖက်၏ရွေးချယ်မှုတို့က ပိုမိုဆုံးဖြတ်စေ'}သည်။`,
         marriage:`၇ တန့်အရှင် ${_lordOfHouse(birthPlanets,7)} နှင့် ၂/၈/၁၁ တန့်တို့ကို ဒသာ-Transit ဖြင့် activate ဖြစ်ချိန်မှာ commitment ၏အလေးချိန် ပိုတက်မည်။ Natal promise မရှိလျှင် transit တစ်ခုတည်းနဲ့ အိမ်ထောင်ဖြစ်မည်ဟု မသတ်မှတ်သင့်။`
       };
-      const _wp = wealthPatternAnalysis(birthPlanets, yogas, dashaTree, wealthScore);
-      return {wealthScore,netWorthTier:tier,incomeSources:_wp.sources,assetProfile:_wp.assets,wealthWindows:_wp.windows,exceptional:_wp.exceptional,netWorthDesc:`ဓန Potential Score ${wealthScore}/100။ ${wealthScore>=70?'ဓနတိုးတက်ရန် အခြေခံ promise ကောင်းသည်၊ သို့သော် အကျိုးပေးသည့်ကာလကို ဒသာ/Transit ဖြင့် ချိန်ရမည်။':'အမြဲတမ်းမြင့်မားမည်ဟု မဆိုနိုင်ဘဲ အချိန်ကာလနှင့် စီမံခန့်ခွဲမှုက အဓိကဖြစ်သည်။'} လက်ရှိ ${active?active.lord+' မဟာဒသာ':''} ကို trigger အဖြစ်ထည့်တွက်ထားသည်။`,pillars,evidence:[_lordSignificatorText(birthPlanets,2),_lordSignificatorText(birthPlanets,10),_lordSignificatorText(birthPlanets,11)]};
+      const _wp = wealthPatternAnalysis(birthPlanets, yogas, dashaTree, wealthScore, todayStr);
+      return {wealthScore,netWorthTier:tier,incomeSources:_wp.sources,assetProfile:_wp.assets,wealthWindows:_wp.windows,exceptional:_wp.exceptional,netWorthDesc:`ဓန Potential Score ${wealthScore}/100။ ${wealthScore>=70?'ဓနတိုးတက်ရန် အခြေခံ promise ကောင်းသည်၊ သို့သော် အကျိုးပေးသည့်ကာလကို ဒသာ/Transit ဖြင့် ချိန်ရမည်။':'အမြဲတမ်းမြင့်မားမည်ဟု မဆိုနိုင်ဘဲ အချိန်ကာလနှင့် စီမံခန့်ခွဲမှုက အဓိကဖြစ်သည်။'} လက်ရှိ ${active?active.lord+' မဟာဒသာ':''} ကို trigger အဖြစ်ထည့်တွက်ထားသည်။`,pillars,evidence:[_lordSignificatorText(birthPlanets,2),d2Evidence,_lordSignificatorText(birthPlanets,10),_lordSignificatorText(birthPlanets,11)]};
     }
 
     function analyzeConjunctionsAndAspects(p) {
@@ -2154,7 +2192,7 @@
       const by=(birthDate&& !isNaN(birthDate.getTime()))?birthDate.getFullYear():2026;
       const out=[];
       (dashaTree||[]).forEach(d=>{
-        const y1=new Date(d.start).getFullYear(), y2=new Date(d.end).getFullYear();
+        const y1=parseInt(String(d.start).slice(0,4),10), y2=parseInt(String(d.end).slice(0,4),10);
         const lord=d.lord, h=_planetHouse(birthPlanets,lord), kp=birthPlanets[lord]!=null?getKPSubLordData(birthPlanets[lord]):null;
         const score=Math.round((_planetStrength(birthPlanets,lord)+(h?([2,5,9,10,11].includes(h)?70:50):50))/2);
         if(y2>=new Date().getFullYear() || y2>=by+18) out.push({
@@ -2176,7 +2214,7 @@
         let tp=transitPlanets;
         try {
           const jd=getJulianDay(d.getFullYear(),d.getMonth()+1,15,12,0,(tz==null||isNaN(tz))?6.5:tz);
-          tp=calculateNASA_JPL_Planets(jd,parseFloat(lat)||16.84,parseFloat(lon)||96.17,ayanamsa,nodeType);
+          tp=calculateAnalyticPlanetPositions(jd,finiteNumber(lat,16.84),finiteNumber(lon,96.17),ayanamsa,nodeType);
         } catch(e){}
         const scores={career:0,wealth:0,love:0,travel:0,pressure:0};
         [['career',10],['wealth',2],['wealth',11],['love',5],['love',7],['travel',9],['travel',12]].forEach(([k,h])=>{
@@ -2408,7 +2446,7 @@
       return'general';
     }
 
-    function calculatePrashnaResult(queryText,horaryNum,birthPlanets,transitPlanets,dashaTree,cfgOverride){
+    function calculatePrashnaResult(queryText,horaryNum,birthPlanets,transitPlanets,dashaTree,cfgOverride,todayStr){
       const intent=detectPrashnaIntent(queryText), hNum=Math.max(1,Math.min(249,parseInt(horaryNum,10)||108));
       const qSign=(hNum*7)%12, tMoon=calculateVarga(transitPlanets.Moon,1), tJup=calculateVarga(transitPlanets.Jupiter,1), tSat=calculateVarga(transitPlanets.Saturn,1);
       let cfg={
@@ -2443,7 +2481,7 @@
       const janmaMoonSign=calculateVarga(birthPlanets.Moon,1), moonFromJanma=((tMoon-janmaMoonSign+12)%12)+1;
       if([1,3,6,7,10,11].includes(moonFromJanma)){score+=4;evidence.push(`မေးသူ၏ ဇာတာလ (Janma Moon) မှ ကောဇာလ သည် ${moonFromJanma} တန့် — မေးသူအတွက် လက်ရှိ စိတ်အခြေအနေနှင့် ကံ အထောက်အပံ့ ကောင်းသည်။`);}
       if(moonFromJanma===8){score-=4;evidence.push(`ကောဇာလ သည် မေးသူ၏ ဇာတာလ မှ ၈ တန့် (စန္ဒြာဋ္ဌမ) — စိတ်ဖိစီးမှု/မတည်ငြိမ်မှု ရှိနိုင်၍ အချိန် စောင့်၍ ဆုံးဖြတ်သင့်။`);}
-      const d=_activeDasha(dashaTree); if(d){const dh=_planetHouse(birthPlanets,d.lord);if(relevant.includes(dh)){score+=7;evidence.push(`လက်ရှိ ${d.lord} Mahadasha သည် မေးခွန်း၏ ${dh}H ကို တိုက်ရိုက် activate လုပ်နေသည်။`);}}
+      const d=_activeDasha(dashaTree, todayStr); if(d){const dh=_planetHouse(birthPlanets,d.lord);if(relevant.includes(dh)){score+=7;evidence.push(`လက်ရှိ ${d.lord} Mahadasha သည် မေးခွန်း၏ ${dh}H ကို တိုက်ရိုက် activate လုပ်နေသည်။`);}}
       if(cfg.rotate){
         const R=cfg.rotate, rLord=_lordOfHouse(birthPlanets,R);
         if(rLord&&birthPlanets[rLord]!=null){
@@ -2682,7 +2720,7 @@
       return { score, verdict, lines, fitAB: fitAB.score, fitBA: fitBA.score, timingA: tA, timingB: tB };
     }
 
-    function calculateCareerBenefitSummary(bp, dashaTree) {
+    function calculateCareerBenefitSummary(bp, dashaTree, todayStr) {
       const lines = [];
       const grahas = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
       const byDeg = grahas.filter((p) => bp[p] != null).map((p) => ({ p, d: ((bp[p] % 30) + 30) % 30 })).sort((a, b) => b.d - a.d);
@@ -2707,7 +2745,7 @@
       if (l10h === 6 || (l6 && _planetHouse(bp, l6) === 10)) svc += 2;
       if ([2, 11].includes(l10h)) biz += 1;
       lines.push(biz > svc ? 'လုပ်ကိုင်ပုံ: ကိုယ်ပိုင် လုပ်ငန်း / ကိုယ်တိုင် ဦးစီးသည့် ပုံစံ ပိုကိုက်ညီသည်' : svc > biz ? 'လုပ်ကိုင်ပုံ: ဌာန/အဖွဲ့အစည်း အတွင်း တာဝန်ယူ လုပ်ရသည့် ပုံစံ ပိုကိုက်ညီသည်' : 'လုပ်ကိုင်ပုံ: ကိုယ်ပိုင် နှင့် ဌာန နှစ်မျိုးလုံး ဖြစ်နိုင်သည် — ကာလ အလိုက် ရွေးရမည်');
-      const d = _activeDasha(dashaTree);
+      const d = _activeDasha(dashaTree, todayStr);
       if (d && (d.lord === l10 || d.lord === amk || _planetHouse(bp, d.lord) === 10)) lines.push(`လက်ရှိ ${d.lord} ဒဿာသည် အလုပ် အကျိုးပေး ကာလ အဖြစ် ဆက်နွယ်နေသည်`);
       const verdict = amk ? `ဘဝ အကျိုးပေး နယ်ပယ်: ${FIELDS[amk]}${art >= 4 ? ' — အထူးသဖြင့် အနုပညာ/ဖန်တီးမှု ဘက်ခြမ်း အားသာသည်' : ''}` : '—';
       return { verdict, lines };
@@ -2727,6 +2765,13 @@
       const n = parseInt(val, 10);
       if (isNaN(n) || n < 1 || n > 31) return fallback;
       return n;
+    }
+    function safeCalendarDay(year, month, value, fallback) {
+      const y = safeYear(year, 2026);
+      const m = safeMonth(month, 1);
+      const d = safeDay(value, fallback == null ? 1 : fallback);
+      const lastDay = new Date(y, m, 0).getDate();
+      return Math.min(d, lastDay);
     }
     function safeHour(val, fallback) {
       const n = parseInt(val, 10);
@@ -2836,10 +2881,11 @@
       const houseLines = cusps ? keys.filter((k) => typeof p[k] === 'number').map((k) => { const h = westernHouseOf(p[k], cusps); return { planet: k, house: h, text: `${WESTERN_PLANET_MY[k]} သည် ${h} တန့် မှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ${WESTERN_PLANET_THEME[k]} ဟာ ${WESTERN_HOUSE_DOMAIN[h - 1]} နယ်ပယ်မှာ အဓိက အလေး ရောက် တယ်။` }; }) : [];
       const aspects = calculateWesternAspects(p);
       const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-      keys.forEach((k) => { if (typeof p[k] === 'number') counts[signOf(k)]++; });
+      const westernPlanetKeys = keys.filter((k) => !['Rahu', 'Ketu'].includes(k));
+      westernPlanetKeys.forEach((k) => { if (typeof p[k] === 'number') counts[signOf(k)]++; });
       const stelliums = counts.map((c, i) => ({ c, s: WESTERN_SIGNS[i] })).filter((x) => x.c >= 3);
       const elCount = { 'မီး': 0, 'မြေ': 0, 'လေ': 0, 'ရေ': 0 };
-      keys.forEach((k) => { if (typeof p[k] === 'number') elCount[WESTERN_SIGNS[signOf(k)].element]++; });
+      westernPlanetKeys.forEach((k) => { if (typeof p[k] === 'number') elCount[WESTERN_SIGNS[signOf(k)].element]++; });
       return { bigThree, signLines, houseLines, aspects, stelliums, elCount };
     }
     function signRelation(a, b) {
@@ -2889,7 +2935,7 @@
     function solveSolarReturnJD(sunLon, approxJD, lat, lon, nodeType) {
       let jd = approxJD;
       for (let i = 0; i < 6; i++) {
-        const sn = calculateNASA_JPL_Planets(jd, lat, lon, 'tropical', nodeType).Sun;
+        const sn = calculateAnalyticPlanetPositions(jd, lat, lon, 'tropical', nodeType).Sun;
         const err = ((sunLon - sn + 540) % 360) - 180;
         jd += err / 0.9856;
         if (Math.abs(err) < 0.0005) break;
@@ -2900,7 +2946,7 @@
       let n = Math.floor((nowJD - birthJD) / 365.2422);
       let jd = solveSolarReturnJD(sunLon, birthJD + n * 365.2422, lat, lon, nodeType);
       if (jd > nowJD) { n -= 1; jd = solveSolarReturnJD(sunLon, birthJD + n * 365.2422, lat, lon, nodeType); }
-      const planets = calculateNASA_JPL_Planets(jd, lat, lon, 'tropical', nodeType);
+      const planets = calculateAnalyticPlanetPositions(jd, lat, lon, 'tropical', nodeType);
       const cusps = calculatePlacidusCusps(jd, lat, lon, 'tropical');
       return { jd, age: n, planets, cusps };
     }
@@ -2917,7 +2963,7 @@
     function calculateProgressions(birthJD, lat, lon, nodeType, nowJD) {
       const age = (nowJD - birthJD) / 365.2422;
       const pjd = birthJD + age;
-      const planets = calculateNASA_JPL_Planets(pjd, lat, lon, 'tropical', nodeType);
+      const planets = calculateAnalyticPlanetPositions(pjd, lat, lon, 'tropical', nodeType);
       const cusps = calculatePlacidusCusps(pjd, lat, lon, 'tropical');
       const phase = norm360(planets.Moon - planets.Sun);
       return { age, jd: pjd, planets, cusps, phase, phaseInfo: PROG_PHASES[Math.min(7, Math.floor(phase / 45))] };
@@ -3520,12 +3566,12 @@
       const [customLon, setCustomLon] = useState('');
       const isTrop = ayanamsa === 'tropical';
       const [relIdx, setRelIdx] = useState(6);
-      const voc = isTrop ? buildWesternVocational(p, calculatePlacidusCusps(birthJD, parseFloat(birthLat) || 16.84, parseFloat(birthLon) || 96.17, 'tropical')) : null;
+      const voc = isTrop ? buildWesternVocational(p, calculatePlacidusCusps(birthJD, finiteNumber(birthLat, 16.84), finiteNumber(birthLon, 96.17), 'tropical')) : null;
       const relCusps = isTrop ? calculatePlacidusCusps(birthJD, ACG_CITIES[relIdx].lat, ACG_CITIES[relIdx].lon, 'tropical') : null;
       const dirs = scoreDirections(p, dashaTree, purpose);
       const fd = foreignDomesticVerdict(p, dashaTree, kpData);
       const climate = climateNote(p);
-      const tropical = calculateNASA_JPL_Planets(birthJD, birthLat, birthLon, 'tropical', nodeType);
+      const tropical = calculateAnalyticPlanetPositions(birthJD, birthLat, birthLon, 'tropical', nodeType);
       const acg = computeACGLines(birthJD, tropical);
       const parsedLat = parseFloat(customLat), parsedLon = parseFloat(customLon);
       const hasCustom = !isNaN(parsedLat) && !isNaN(parsedLon) && Math.abs(parsedLat) <= 90 && Math.abs(parsedLon) <= 180;
@@ -3724,10 +3770,10 @@
         let h24 = iv(person.h, 12) % 12; if (person.ampm === 'PM') h24 += 12;
         const y = iv(person.y, 1990), m = Math.min(12, Math.max(1, iv(person.m, 1))), d = Math.min(31, Math.max(1, iv(person.d, 1)));
         const jd = getJulianDay(y, m, d, h24, iv(person.min, 0), personEffTz(person, y, m, d, h24, iv(person.min, 0)));
-        const planets = calculateNASA_JPL_Planets(jd, parseFloat(person.lat) || 16.84, parseFloat(person.lon) || 96.17, ayanamsa, nodeType);
+        const planets = calculateAnalyticPlanetPositions(jd, finiteNumber(person.lat, 16.84), finiteNumber(person.lon, 96.17), ayanamsa, nodeType);
         const dasha = calculateDashaTree(planets.Moon, new Date(y, m - 1, d, h24, iv(person.min, 0)));
         let kp = null;
-        if (ayanamsa === 'kp') { const cusps = calculatePlacidusCusps(jd, parseFloat(person.lat) || 16.84, parseFloat(person.lon) || 96.17, 'kp'); kp = buildKPData(planets, cusps); }
+        if (ayanamsa === 'kp') { const cusps = calculatePlacidusCusps(jd, finiteNumber(person.lat, 16.84), finiteNumber(person.lon, 96.17), 'kp'); kp = buildKPData(planets, cusps); }
         return { planets, dasha, kp };
       };
       const A = calc(personA), B = calc(personB);
@@ -3850,20 +3896,17 @@
       try { sb = computeShadbala(planets, jd, lat, lon, ayanamsa, nodeType); av = computeAshtakavarga(planets); } catch (e) { return null; }
       if (!sb || !av) return null;
       const f1 = (n) => (Math.round(n * 10) / 10).toFixed(1);
-      const grade = (r) => r >= 1.25 ? { t: 'အားကောင်း', c: 'bg-emerald-100 text-emerald-800' } : (r >= 1 ? { t: 'လိုချက် ပြည့်', c: 'bg-slate-100 text-slate-700' } : { t: 'အားလျော့', c: 'bg-rose-100 text-rose-700' });
       return (
         <div className="bg-white rounded border border-slate-200 overflow-hidden text-xs mt-3">
           <div className="bg-slate-100 p-2 font-bold text-slate-800 border-b">💪 အားဗလ — Shadbala &amp; Ashtakavarga (မွေးဇာတာ)</div>
           <div className="p-2 space-y-2">
-            {GRAHAS7.map((pl) => { const s = sb[pl]; const g = grade(s.ratio); return (
+            {GRAHAS7.map((pl) => { const s = sb[pl]; return (
               <div key={pl} className="border-b border-slate-100 pb-1.5">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-emerald-900 w-20">{PLANET_SHORT[pl]} ({pl})</span>
-                  <span className="font-bold text-slate-800">{f1(s.rupas)} Rupa</span>
-                  <span className="text-slate-400">လိုချက် {s.req}</span>
-                  <span className={'px-1.5 py-0.5 rounded text-[10px] font-bold ' + g.c}>{g.t}</span>
+                  <span className="font-bold text-slate-800">{f1(s.rupas)} Rupa · အနီးစပ်</span>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">နေရာ {f1(s.sthana)} (ဥစ္စ {f1(s.uccha)} · ဝဂ္ဂ {f1(s.sapta)} · ကိန့် {f1(s.kendra)}) · Dig {f1(s.dig)} · Kala {f1(s.kala)} · Cheshta {f1(s.cheshta)} · သဘာဝ {f1(s.nais)} · မြင်ကွင်း {f1(s.drik)}</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">နေရာ {f1(s.sthana)} (ဥစ္စ {f1(s.uccha)} · ဝဂ္ဂ {f1(s.sapta)} · Kendra {f1(s.kendra)}) · Dig {f1(s.dig)} · Kala {f1(s.kala)} · Cheshta {f1(s.cheshta)} · သဘာဝ {f1(s.nais)} · မြင်ကွင်း {f1(s.drik)}</div>
               </div> ); })}
             <div>
               <div className="font-bold text-slate-700 mt-1">Sarvashtakavarga (SAV) — ရာသီ အလိုက် အမှတ် (၂၈ အထက် အားကောင်း)</div>
@@ -3881,6 +3924,7 @@
               </div>
             </div>
             <div className="text-[9px] text-slate-400 leading-relaxed">မှတ်ချက်: Ashtakavarga BAV/SAV သည် ရှေးနည်းဇယားအရ စုစုပေါင်း {av.grand} ဖြစ်သည်။ Shadbala ကို လက်ရှိတွင် ခန့်မှန်း/အနီးစပ်တွက်ချက်မှုအဖြစ်သာ သုံးပါ — Saptavargaja အမှတ်ပေးမှု၊ Dig Bala၊ Kala Bala နှင့် Cheshta/Drik Bala တို့သည် Classical Parāśari အပြည့်အစုံနှင့် မတူသေးပါ။ Tribhaga နှင့် Varsha/Masa/Dina/Hora အပိုင်းများလည်း မပါသေးပါ။</div>
+            <div className="text-[9px] text-slate-400 leading-relaxed border-t pt-1.5">ဂြိုဟ်တည်နေရာများကို App အတွင်း analytic orbital formulas ဖြင့်တွက်ထားသည် — NASA/JPL သို့မဟုတ် Swiss Ephemeris ကို live query မလုပ်ပါ။ ရက်အချို့ကို Swiss Ephemeris နှင့် စမ်းသပ်နှိုင်းယှဉ်ရာတွင် Sun/Mercury/Venus/Mars/Uranus/Neptune/Pluto တို့သည် ယေဘုယျအားဖြင့် ၁.၅′ ဝန်းကျင်အတွင်း၊ Moon ၂.၅′ ဝန်းကျင်အထိ၊ Jupiter ၆′ ဝန်းကျင်နှင့် Saturn ၁၂′ ဝန်းကျင်အထိ ကွာခြားခဲ့သည်။ True Node သည် ၂၅′ ဝန်းကျင်အထိ ကွာနိုင်ပြီး Mean Node ကို default အဖြစ် သုံးထားသည်။ ဤကိန်းဂဏန်းများသည် ရွေးချယ်စမ်းသပ်ထားသော ရက်များအပေါ်သာ အခြေခံသည်။</div>
           </div>
         </div>
       );
@@ -4218,16 +4262,90 @@
       }
     }
 
+    // ===== v6.23: repeatable internal invariant tests =====
+    // These tests verify invariants and regressions; they do NOT prove every
+    // astrological interpretation or every classical formula is authoritative.
+    function runAstroMMCoreTests() {
+      const results = [];
+      const test = (name, fn) => {
+        try {
+          const detail = fn();
+          results.push({ name, pass: detail !== false, detail: typeof detail === 'string' ? detail : (detail === false ? 'Assertion failed' : 'OK') });
+        } catch (err) {
+          results.push({ name, pass: false, detail: String(err && err.message ? err.message : err) });
+        }
+      };
+      const close = (a, b, eps) => Math.abs(a - b) <= eps;
+      test('Angle normalization: negative, wraparound, and 360° boundary', () =>
+        close(norm360(-1), 359, 1e-9) && close(norm360(721), 1, 1e-9) && close(norm360(360), 0, 1e-9));
+      test('Julian Day epoch: 2000-01-01 12:00 UTC = JD 2451545.0', () =>
+        close(getJulianDay(2000, 1, 1, 12, 0, 0), 2451545.0, 1e-8));
+      test('Zero coordinates/timezone are valid numeric inputs', () =>
+        finiteNumber('0', 99) === 0 && finiteNumber(0, 99) === 0 && finiteNumber('', 99) === 99);
+      test('Ayanamsa modes return finite values and tropical is zero', () => {
+        const jd = 2451545.0;
+        return ['lahiri', 'kp', 'raman', 'tropical'].every(k => Number.isFinite(getAyanamsa(jd, k))) && getAyanamsa(jd, 'tropical') === 0;
+      });
+      test('Varga outputs remain in 0..11 for supported divisional charts', () => {
+        const angles = [0, 1e-8, 29.999999, 30, 89.999999, 180, 269.999999, 359.999999];
+        return ALL_VARGAS.every(v => angles.every(a => {
+          const r = calculateVarga(a, v); return Number.isInteger(r) && r >= 0 && r <= 11;
+        }));
+      });
+      test('Ashtakavarga BAV totals match classical table totals (48,49,39,54,56,52,39)', () => {
+        const p = { Lagna: 16.84, Sun: 10, Moon: 40, Mars: 75, Mercury: 120, Jupiter: 160, Venus: 200, Saturn: 250 };
+        const av = computeAshtakavarga(p);
+        const expected = { Sun: 48, Moon: 49, Mars: 39, Mercury: 54, Jupiter: 56, Venus: 52, Saturn: 39 };
+        return av.grand === 337 && Object.keys(expected).every(k => av.totals[k] === expected[k]);
+      });
+      test('Analytic ephemeris returns finite normalized longitudes at equator/prime meridian', () => {
+        const p = calculateAnalyticPlanetPositions(2451545.0, 0, 0, 'lahiri', 'mean');
+        const keys = ['Lagna','Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu','Uranus','Neptune','Pluto'];
+        return keys.every(k => Number.isFinite(p[k]) && p[k] >= 0 && p[k] < 360);
+      });
+      test('Rahu and Ketu remain antipodal in Mean Node and True Node modes', () => {
+        return ['mean', 'true'].every(mode => {
+          const p = calculateAnalyticPlanetPositions(2460000.5, 16.84, 96.17, 'lahiri', mode);
+          return close(norm360(p.Ketu - p.Rahu), 180, 1e-7);
+        });
+      });
+      test('Ephemeris is stable across historical, modern, and future sample epochs', () => {
+        const epochs = [2415020.0, 2451545.0, 2488070.0];
+        return epochs.every(jd => {
+          const p = calculateAnalyticPlanetPositions(jd, 16.84, 96.17, 'lahiri', 'mean');
+          return ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'].every(k => Number.isFinite(p[k]) && p[k] >= 0 && p[k] < 360);
+        });
+      });
+      test('Wealth scenario stays separate from chart scores and is monotonic', () => {
+        const empty = calculateWealthEstimate('lower', '', '', '', 10);
+        const current = calculateWealthEstimate('lower', '10000', '', '', 10);
+        const proj = calculateWealthEstimate('lower', '10000', '50000', '10', 10);
+        return empty.mode === 'insufficient' && current.low === 10000 && current.high === 10000 && proj.mode === 'projection' && proj.high >= proj.low;
+      });
+      test('Dasha tree generates a valid first major period from a valid Moon longitude', () => {
+        const tree = calculateDashaTree(123.456, new Date(1990, 0, 1, 12, 0));
+        return !!tree && Array.isArray(tree) && tree.length > 0 && !!tree[0].lord && !!tree[0].start && !!tree[0].end;
+      });
+      return { ranAt: new Date().toISOString(), total: results.length, passed: results.filter(x => x.pass).length, failed: results.filter(x => !x.pass).length, results };
+    }
+
     // ==========================================
     // 5. MAIN APPLICATION CONTROLLER
     // ==========================================
     function MainApp() {
       const [activeTab, setActiveTab] = useState('transit');
+      const [auditReport, setAuditReport] = useState(null);
+      const [auditBusy, setAuditBusy] = useState(false);
+      const [auditCopied, setAuditCopied] = useState(false);
+      const runAuditNow = () => { setAuditBusy(true); setAuditCopied(false); try { setAuditReport(runAstroMMCoreTests()); } catch (e) { setAuditReport({ ranAt: new Date().toISOString(), total: 1, passed: 0, failed: 1, results: [{ name: 'Audit runner', pass: false, detail: String(e) }] }); } finally { setAuditBusy(false); } };
+      const copyAuditReport = async () => { if (!auditReport) return; const report = JSON.stringify(auditReport, null, 2); try { await navigator.clipboard.writeText(report); setAuditCopied(true); } catch (e) { setAuditCopied(false); } };
       const [agreed, setAgreed] = useState(() => { try { return localStorage.getItem('jyotish_agreed_v1') === '1'; } catch (e) { return false; } });
       const agreeDisclaimer = () => { try { localStorage.setItem('jyotish_agreed_v1', '1'); } catch (e) {} setAgreed(true); };
       const [wealthEconomy, setWealthEconomy] = useState('lower');
       const [wealthCurrentAssets, setWealthCurrentAssets] = useState('');
       const [wealthAnnualIncome, setWealthAnnualIncome] = useState('');
+      const [wealthSavingsRate, setWealthSavingsRate] = useState('');
+      const [wealthHorizon, setWealthHorizon] = useState('10');
       const [chartStyle, setChartStyle] = useState('east');
       const [varga, setVarga] = useState(1);
       const [isOverlayOn, setIsOverlayOn] = useState(false);
@@ -4281,7 +4399,7 @@
         if (evs.length === 0) { setRectResults([]); return; }
         setRectBusy(true);
         setTimeout(() => {
-          try { setRectResults(rectifyBirthTime({ dateStr, fromMin, toMin, tz: birthTzEffForRect, lat: parseFloat(birthLat) || 16.84, lon: parseFloat(birthLon) || 96.17, ayanamsa, nodeType, events: evs, appearanceSign: rectAppSign === '' ? null : parseInt(rectAppSign, 10) })); }
+          try { setRectResults(rectifyBirthTime({ dateStr, fromMin, toMin, tz: birthTzEffForRect, lat: finiteNumber(birthLat, 16.84), lon: finiteNumber(birthLon, 96.17), ayanamsa, nodeType, events: evs, appearanceSign: rectAppSign === '' ? null : parseInt(rectAppSign, 10) })); }
           catch (e) { setRectResults([]); }
           setRectBusy(false);
         }, 30);
@@ -4452,52 +4570,53 @@
       const curY = now.getFullYear();
       const sY = safeYear(birthYear, curY);
       const sM = safeMonth(birthMonth, now.getMonth() + 1);
-      const sD = safeDay(birthDay, now.getDate());
+      const sD = safeCalendarDay(sY, sM, birthDay, now.getDate());
       const sH = to24(safeHour(birthHour, 12), birthAmPm);
       const sMin = safeMinute(birthMinute, now.getMinutes());
 
       const birthDateObj = new Date(sY, sM - 1, sD, sH, sMin);
 
-      const birthTzEff = birthZone ? (zoneOffsetHours(birthZone, sY, sM, sD, sH, sMin) ?? (parseFloat(birthTz) || 6.5)) : (parseFloat(birthTz) || 6.5);
+      const birthTzEff = birthZone ? (zoneOffsetHours(birthZone, sY, sM, sD, sH, sMin) ?? finiteNumber(birthTz, 6.5)) : finiteNumber(birthTz, 6.5);
       const birthTzEffForRect = birthTzEff;
+      const currentBirthOffset = birthZone ? (zoneOffsetAtInstant(birthZone, now) ?? finiteNumber(birthTz, 6.5)) : finiteNumber(birthTz, 6.5);
+      const currentDateStr = new Date(now.getTime() + currentBirthOffset * 3600000).toISOString().split('T')[0];
       useEffect(() => {
         if (!birthZone) return;
         const z = zoneOffsetHours(birthZone, sY, sM, sD, sH, sMin);
         if (z != null && String(z) !== String(birthTz)) setBirthTz(String(z));
       }, [birthZone, sY, sM, sD, sH, sMin]);
-      const transitTzEff = transitZone ? (zoneOffsetAtInstant(transitZone, transitDate) ?? (parseFloat(transitTz) || 6.5)) : (parseFloat(transitTz) || 6.5);
+      const transitTzEff = transitZone ? (zoneOffsetAtInstant(transitZone, transitDate) ?? finiteNumber(transitTz, 6.5)) : finiteNumber(transitTz, 6.5);
       const birthJD = getJulianDay(sY, sM, sD, sH, sMin, birthTzEff);
-      const birthPlanets = calculateNASA_JPL_Planets(birthJD, parseFloat(birthLat) || 16.84, parseFloat(birthLon) || 96.17, ayanamsa, nodeType);
-      const birthPlanetsNext = calculateNASA_JPL_Planets(birthJD + 1, parseFloat(birthLat) || 16.84, parseFloat(birthLon) || 96.17, ayanamsa, nodeType);
-      const kpCusps = ayanamsa === 'kp' ? calculatePlacidusCusps(birthJD, parseFloat(birthLat) || 16.84, parseFloat(birthLon) || 96.17, ayanamsa) : null;
+      const birthPlanets = calculateAnalyticPlanetPositions(birthJD, finiteNumber(birthLat, 16.84), finiteNumber(birthLon, 96.17), ayanamsa, nodeType);
+      const birthPlanetsNext = calculateAnalyticPlanetPositions(birthJD + 1, finiteNumber(birthLat, 16.84), finiteNumber(birthLon, 96.17), ayanamsa, nodeType);
+      const kpCusps = ayanamsa === 'kp' ? calculatePlacidusCusps(birthJD, finiteNumber(birthLat, 16.84), finiteNumber(birthLon, 96.17), ayanamsa) : null;
       const isTrop = ayanamsa === 'tropical';
-      const tropCusps = isTrop ? calculatePlacidusCusps(birthJD, parseFloat(birthLat) || 16.84, parseFloat(birthLon) || 96.17, 'tropical') : null;
+      const tropCusps = isTrop ? calculatePlacidusCusps(birthJD, finiteNumber(birthLat, 16.84), finiteNumber(birthLon, 96.17), 'tropical') : null;
       const western = isTrop ? generateWesternReadings(birthPlanets, tropCusps) : null;
       const nowJD = Date.now() / 86400000 + 2440587.5;
-      const solarReturn = isTrop ? calculateSolarReturn(birthJD, birthPlanets.Sun, parseFloat(birthLat) || 16.84, parseFloat(birthLon) || 96.17, nodeType, nowJD) : null;
-      const progressions = isTrop ? calculateProgressions(birthJD, parseFloat(birthLat) || 16.84, parseFloat(birthLon) || 96.17, nodeType, nowJD) : null;
+      const solarReturn = isTrop ? calculateSolarReturn(birthJD, birthPlanets.Sun, finiteNumber(birthLat, 16.84), finiteNumber(birthLon, 96.17), nodeType, nowJD) : null;
+      const progressions = isTrop ? calculateProgressions(birthJD, finiteNumber(birthLat, 16.84), finiteNumber(birthLon, 96.17), nodeType, nowJD) : null;
       const aspectPatterns = isTrop ? detectAspectPatterns(birthPlanets) : [];
       const tJD = transitDate.getTime() / 86400000 + 2440587.5;
-      const transitPlanets = calculateNASA_JPL_Planets(tJD, parseFloat(transitLat) || 16.84, parseFloat(transitLon) || 96.17, ayanamsa, nodeType);
-      const tropTransitCusps = isTrop ? calculatePlacidusCusps(tJD, parseFloat(transitLat) || 16.84, parseFloat(transitLon) || 96.17, 'tropical') : null;
+      const transitPlanets = calculateAnalyticPlanetPositions(tJD, finiteNumber(transitLat, 16.84), finiteNumber(transitLon, 96.17), ayanamsa, nodeType);
+      const tropTransitCusps = isTrop ? calculatePlacidusCusps(tJD, finiteNumber(transitLat, 16.84), finiteNumber(transitLon, 96.17), 'tropical') : null;
 
       const dashaTree = calculateDashaTree(birthPlanets.Moon, birthDateObj);
       const bhavaBala = calculateBhavaBala(birthPlanets);
       const yogas = checkAllYogas(birthPlanets);
-      const kpReading = ayanamsa === 'kp' && kpCusps ? generateKPReading(birthPlanets, kpCusps, dashaTree) : null;
+      const kpReading = ayanamsa === 'kp' && kpCusps ? generateKPReading(birthPlanets, kpCusps, dashaTree, currentDateStr) : null;
       const kpData = kpReading ? kpReading.data : null;
       const kpEffects = kpData ? kpHouseEffects(kpData) : null;
 
-      const currentDateStr = now.toISOString().split('T')[0];
       const currentRunningDasha = dashaTree.find((d) => d.start <= currentDateStr && d.end >= currentDateStr) || dashaTree[0] || { lord: 'Ketu', start: '2026-01-01', end: '2033-01-01' };
 
-      const lifeOverview = generateLifeOverview(birthPlanets, ayanamsa, dashaTree, yogas);
-      const wealthEstimate = calculateWealthEstimate(lifeOverview.wealthScore || 1, wealthEconomy, wealthCurrentAssets, wealthAnnualIncome);
-      const careerBenefit = calculateCareerBenefitSummary(birthPlanets, dashaTree);
+      const lifeOverview = generateLifeOverview(birthPlanets, ayanamsa, dashaTree, yogas, currentDateStr);
+      const wealthEstimate = calculateWealthEstimate(wealthEconomy, wealthCurrentAssets, wealthAnnualIncome, wealthSavingsRate, wealthHorizon);
+      const careerBenefit = calculateCareerBenefitSummary(birthPlanets, dashaTree, currentDateStr);
       const spouseProfile = buildSpouseProfile(birthPlanets, dashaTree);
       const ayuReading = generateAyuReading(birthPlanets, dashaTree);
-      const eventWindows = calculateEventWindows(birthPlanets, dashaTree, {ayanamsa, nodeType, tz: birthTzEff, lat: parseFloat(birthLat) || 16.84, lon: parseFloat(birthLon) || 96.17});
-      const healthWindows = calculateHealthWindows(birthPlanets, dashaTree, {ayanamsa, nodeType, tz: birthTzEff, lat: parseFloat(birthLat) || 16.84, lon: parseFloat(birthLon) || 96.17});
+      const eventWindows = calculateEventWindows(birthPlanets, dashaTree, {ayanamsa, nodeType, tz: birthTzEff, lat: finiteNumber(birthLat, 16.84), lon: finiteNumber(birthLon, 96.17)});
+      const healthWindows = calculateHealthWindows(birthPlanets, dashaTree, {ayanamsa, nodeType, tz: birthTzEff, lat: finiteNumber(birthLat, 16.84), lon: finiteNumber(birthLon, 96.17)});
       const placementReading = buildPlacementReading(birthPlanets, placementPlanet, birthPlanetsNext);
       const lifetimeMilestones = generateLifetimeMilestones(birthDateObj, dashaTree, birthPlanets);
       const annualForecast = generateAnnualForecast(birthDateObj, birthPlanets, transitPlanets, transitDate, transitLat, transitLon, ayanamsa, nodeType, transitTzEff);
@@ -4514,8 +4633,8 @@
           const cfg = e ? { title: e.t, houses: e.h, primary: e.p, karaka: e.k, rotate: e.r } : undefined;
           const q = e ? e.q : prashnaCustomText;
           return ayanamsa === 'kp' && kpCusps
-            ? calculateKPPrashnaResult(q, horaryNumber, birthPlanets, transitPlanets, dashaTree, kpCusps, cfg)
-            : calculatePrashnaResult(q, horaryNumber, birthPlanets, transitPlanets, dashaTree, cfg);
+            ? calculateKPPrashnaResult(q, horaryNumber, birthPlanets, transitPlanets, dashaTree, kpCusps, cfg, currentDateStr)
+            : calculatePrashnaResult(q, horaryNumber, birthPlanets, transitPlanets, dashaTree, cfg, currentDateStr);
         };
         if (bankSel.length === 2) {
           const [A, B] = bankSel;
@@ -4531,33 +4650,33 @@
 
       const boyH = to24(safeHour(boy.h, 12), boy.ampm);
       const girlH = to24(safeHour(girl.h, 12), girl.ampm);
-      const boyDateObj = new Date(safeYear(boy.y, curY), safeMonth(boy.m, 1) - 1, safeDay(boy.d, 1), boyH, safeMinute(boy.min, 0));
-      const girlDateObj = new Date(safeYear(girl.y, curY), safeMonth(girl.m, 1) - 1, safeDay(girl.d, 1), girlH, safeMinute(girl.min, 0));
+      const boyDateObj = new Date(safeYear(boy.y, curY), safeMonth(boy.m, 1) - 1, safeCalendarDay(safeYear(boy.y, curY), safeMonth(boy.m, 1), boy.d, 1), boyH, safeMinute(boy.min, 0));
+      const girlDateObj = new Date(safeYear(girl.y, curY), safeMonth(girl.m, 1) - 1, safeCalendarDay(safeYear(girl.y, curY), safeMonth(girl.m, 1), girl.d, 1), girlH, safeMinute(girl.min, 0));
       
       // Dynamic Julian Day calculation using individual timezones
-      const boyJD = getJulianDay(safeYear(boy.y, curY), safeMonth(boy.m, 1), safeDay(boy.d, 1), boyH, safeMinute(boy.min, 0), personEffTz(boy, safeYear(boy.y, curY), safeMonth(boy.m, 1), safeDay(boy.d, 1), boyH, safeMinute(boy.min, 0)));
-      const girlJD = getJulianDay(safeYear(girl.y, curY), safeMonth(girl.m, 1), safeDay(girl.d, 1), girlH, safeMinute(girl.min, 0), personEffTz(girl, safeYear(girl.y, curY), safeMonth(girl.m, 1), safeDay(girl.d, 1), girlH, safeMinute(girl.min, 0)));
-      const boyPlanets = calculateNASA_JPL_Planets(boyJD, boy.lat, boy.lon, ayanamsa);
-      const girlPlanets = calculateNASA_JPL_Planets(girlJD, girl.lat, girl.lon, ayanamsa);
+      const boyJD = getJulianDay(safeYear(boy.y, curY), safeMonth(boy.m, 1), safeCalendarDay(safeYear(boy.y, curY), safeMonth(boy.m, 1), boy.d, 1), boyH, safeMinute(boy.min, 0), personEffTz(boy, safeYear(boy.y, curY), safeMonth(boy.m, 1), safeCalendarDay(safeYear(boy.y, curY), safeMonth(boy.m, 1), boy.d, 1), boyH, safeMinute(boy.min, 0)));
+      const girlJD = getJulianDay(safeYear(girl.y, curY), safeMonth(girl.m, 1), safeCalendarDay(safeYear(girl.y, curY), safeMonth(girl.m, 1), girl.d, 1), girlH, safeMinute(girl.min, 0), personEffTz(girl, safeYear(girl.y, curY), safeMonth(girl.m, 1), safeCalendarDay(safeYear(girl.y, curY), safeMonth(girl.m, 1), girl.d, 1), girlH, safeMinute(girl.min, 0)));
+      const boyPlanets = calculateAnalyticPlanetPositions(boyJD, finiteNumber(boy.lat, 16.84), finiteNumber(boy.lon, 96.17), ayanamsa, nodeType);
+      const girlPlanets = calculateAnalyticPlanetPositions(girlJD, finiteNumber(girl.lat, 16.84), finiteNumber(girl.lon, 96.17), ayanamsa, nodeType);
       const matchResult = calculateSynastry(boyPlanets, girlPlanets, ayanamsa, boyDateObj, girlDateObj);
-      const kpMatch = ayanamsa === 'kp' ? calculateKPMatching(boyPlanets, girlPlanets, calculatePlacidusCusps(boyJD, boy.lat, boy.lon, 'kp'), calculatePlacidusCusps(girlJD, girl.lat, girl.lon, 'kp')) : null;
+      const kpMatch = ayanamsa === 'kp' ? calculateKPMatching(boyPlanets, girlPlanets, calculatePlacidusCusps(boyJD, finiteNumber(boy.lat, 16.84), finiteNumber(boy.lon, 96.17), 'kp'), calculatePlacidusCusps(girlJD, finiteNumber(girl.lat, 16.84), finiteNumber(girl.lon, 96.17), 'kp')) : null;
       const boyTreeRP = calculateDashaTree(boyPlanets.Moon, boyDateObj);
       const girlTreeRP = calculateDashaTree(girlPlanets.Moon, girlDateObj);
       const rpMain = calculateRightPerson(boyPlanets, girlPlanets, boyTreeRP, girlTreeRP, rpContext, matchResult ? matchResult.total : 0, boy.name || 'ပထမလူ', girl.name || 'ဒုတိယလူ', kpMatch ? kpMatch.score : null);
       const rivalH = to24(safeHour(rival.h, 12), rival.ampm);
-      const rivalDateObj = new Date(safeYear(rival.y, curY), safeMonth(rival.m, 1) - 1, safeDay(rival.d, 1), rivalH, safeMinute(rival.min, 0));
-      const rivalJD = getJulianDay(safeYear(rival.y, curY), safeMonth(rival.m, 1), safeDay(rival.d, 1), rivalH, safeMinute(rival.min, 0), personEffTz(rival, safeYear(rival.y, curY), safeMonth(rival.m, 1), safeDay(rival.d, 1), rivalH, safeMinute(rival.min, 0)));
-      const rivalPlanets = rivalOn ? calculateNASA_JPL_Planets(rivalJD, rival.lat, rival.lon, ayanamsa) : null;
+      const rivalDateObj = new Date(safeYear(rival.y, curY), safeMonth(rival.m, 1) - 1, safeCalendarDay(safeYear(rival.y, curY), safeMonth(rival.m, 1), rival.d, 1), rivalH, safeMinute(rival.min, 0));
+      const rivalJD = getJulianDay(safeYear(rival.y, curY), safeMonth(rival.m, 1), safeCalendarDay(safeYear(rival.y, curY), safeMonth(rival.m, 1), rival.d, 1), rivalH, safeMinute(rival.min, 0), personEffTz(rival, safeYear(rival.y, curY), safeMonth(rival.m, 1), safeCalendarDay(safeYear(rival.y, curY), safeMonth(rival.m, 1), rival.d, 1), rivalH, safeMinute(rival.min, 0)));
+      const rivalPlanets = rivalOn ? calculateAnalyticPlanetPositions(rivalJD, finiteNumber(rival.lat, 16.84), finiteNumber(rival.lon, 96.17), ayanamsa, nodeType) : null;
       const rivalTreeRP = rivalPlanets ? calculateDashaTree(rivalPlanets.Moon, rivalDateObj) : null;
       const rivalSynastry = rivalPlanets ? (rpCenter === 'girl' ? calculateSynastry(rivalPlanets, girlPlanets, ayanamsa, rivalDateObj, girlDateObj) : calculateSynastry(boyPlanets, rivalPlanets, ayanamsa, boyDateObj, rivalDateObj)) : null;
       const westernSynastry = isTrop ? calculateWesternSynastry(boyPlanets, girlPlanets) : null;
       const composite = isTrop ? calculateComposite(boyPlanets, girlPlanets) : null;
-      const boyPartner = isTrop ? buildWesternPartnerProfile(boyPlanets, calculatePlacidusCusps(boyJD, parseFloat(boy.lat) || 16.84, parseFloat(boy.lon) || 96.17, 'tropical')) : null;
-      const girlPartner = isTrop ? buildWesternPartnerProfile(girlPlanets, calculatePlacidusCusps(girlJD, parseFloat(girl.lat) || 16.84, parseFloat(girl.lon) || 96.17, 'tropical')) : null;
+      const boyPartner = isTrop ? buildWesternPartnerProfile(boyPlanets, calculatePlacidusCusps(boyJD, finiteNumber(boy.lat, 16.84), finiteNumber(boy.lon, 96.17), 'tropical')) : null;
+      const girlPartner = isTrop ? buildWesternPartnerProfile(girlPlanets, calculatePlacidusCusps(girlJD, finiteNumber(girl.lat, 16.84), finiteNumber(girl.lon, 96.17), 'tropical')) : null;
       const rpAlt = rivalPlanets ? (rpCenter === 'girl' ? calculateRightPerson(rivalPlanets, girlPlanets, rivalTreeRP, girlTreeRP, rpContext, rivalSynastry ? rivalSynastry.total : 0, rival.name || 'ပြိုင်ဘက်', girl.name || 'ဒုတိယလူ', null) : calculateRightPerson(boyPlanets, rivalPlanets, boyTreeRP, rivalTreeRP, rpContext, rivalSynastry ? rivalSynastry.total : 0, boy.name || 'ပထမလူ', rival.name || 'ပြိုင်ဘက်', null)) : null;
 
       const timePad = (n) => (n < 10 ? '0' + n : n);
-      const _tzDisp = new Date(transitDate.getTime() + (((parseFloat(transitTz) || 6.5) * 60) + transitDate.getTimezoneOffset()) * 60000);
+      const _tzDisp = new Date(transitDate.getTime() + ((transitTzEff * 60) + transitDate.getTimezoneOffset()) * 60000);
       const transitTimeStr = `${timePad(_tzDisp.getHours())}:${timePad(_tzDisp.getMinutes())}`;
 
       // KP Ruling Planets
@@ -4622,7 +4741,7 @@
 
           {/* ALL-VISIBLE 2-ROW GRID TABS HEADER */}
           <div className="bg-white border-b border-slate-200 p-1.5 shadow-sm">
-            <div className="grid grid-cols-5 gap-1 text-[11px] font-semibold text-center">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 text-[11px] font-semibold text-center">
               {[
                 { id: 'transit', l: '🪐 ကောဇာ' },
                 { id: 'chart', l: '📜 မွေးဇာတာ' },
@@ -4633,7 +4752,8 @@
                 { id: 'yogas', l: '✨ ယောဂ' },
                 { id: 'matching', l: '💍 ဇာတာတိုက်' },
                 { id: 'place', l: '🧭 ရွေးချယ်မှု' },
-                { id: 'relate', l: '🤝 ပေါင်းသင်း' }
+                { id: 'relate', l: '🤝 ပေါင်းသင်း' },
+                { id: 'audit', l: '🧪 စစ်ဆေးမှု' }
               ].map((t) => (
                 <button
                   key={t.id}
@@ -4645,6 +4765,48 @@
               ))}
             </div>
           </div>
+
+          {/* TAB: AUDIT LAB — transparent, repeatable checks */}
+          {activeTab === 'audit' && (
+            <div className="p-3 space-y-3">
+              <div className="rounded-xl border border-emerald-200 bg-white p-3 space-y-2">
+                <h2 className="font-bold text-emerald-900 text-base">🧪 Astro MM — Core Audit Lab</h2>
+                <p className="text-xs text-slate-600 leading-relaxed">ဒီစမ်းသပ်ခန်းက တွက်ချက်မှုအချို့ရဲ့ သင်္ချာဆိုင်ရာ invariant နဲ့ regression ကို စစ်ပေးပါတယ်။ အောင်မြင်မှုရလဒ်က ဗေဒင်နည်းအားလုံးကို ရှေးကျမ်းနည်းအတိုင်း အပြည့်အဝမှန်ကန်ကြောင်း သက်သေမပြပါ။</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={runAuditNow} disabled={auditBusy} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{auditBusy ? 'စစ်ဆေးနေသည်…' : 'စမ်းသပ်မှုအားလုံး လုပ်မည်'}</button>
+                  <button onClick={copyAuditReport} disabled={!auditReport} className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">JSON Report ကူးယူမည်</button>
+                  {auditCopied && <span className="self-center text-xs font-bold text-emerald-700">ကူးယူပြီး</span>}
+                </div>
+              </div>
+              {auditReport && (
+                <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-bold text-slate-800">ရလဒ်: {auditReport.passed}/{auditReport.total} အောင်မြင်</div>
+                    <span className={`rounded-full px-2 py-1 text-xs font-bold ${auditReport.failed === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{auditReport.failed === 0 ? 'FAIL မရှိ' : `${auditReport.failed} FAIL`}</span>
+                  </div>
+                  <div className="space-y-1">
+                    {auditReport.results.map((r, i) => (
+                      <div key={i} className="flex items-start gap-2 rounded-lg bg-slate-50 p-2">
+                        <span className={`text-sm font-black ${r.pass ? 'text-emerald-700' : 'text-red-700'}`}>{r.pass ? '✓' : '✕'}</span>
+                        <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-slate-800">{r.name}</div><div className="break-words text-[10px] text-slate-500">{r.detail}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-slate-400">Run time: {auditReport.ranAt}</div>
+                </div>
+              )}
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <h3 className="font-bold text-amber-900 text-sm">NASA/JPL ကို ဘာကြောင့် ဒီနေရာကနေ တိုက်ရိုက်မခေါ်ထားတာလဲ။</h3>
+                <p className="text-xs leading-relaxed text-amber-900">NASA/JPL Horizons API ကို static GitHub Pages browser app ထဲကနေ တိုက်ရိုက် embed လုပ်သုံးရန် NASA က CORS ကန့်သတ်ချက်ကို ဖော်ပြထားပါတယ်။ ထို့ကြောင့် ဒီ App က အခုထိ JPL ကို live ephemeris provider အဖြစ် မသုံးပါ။ အပြင်ဘက် proxy/server တစ်ခုနဲ့ reference comparison လုပ်ရပါမယ်။</p>
+                <a className="inline-block text-xs font-bold text-blue-800 underline" href="https://ssd-api.jpl.nasa.gov/doc/horizons.html" target="_blank" rel="noreferrer">NASA/JPL Horizons API စာတမ်း ဖွင့်ရန် ↗</a>
+                <p className="text-[10px] leading-relaxed text-amber-800">လက်ရှိ ဂြိုဟ်တည်နေရာများကို App အတွင်း analytic formulas ဖြင့်တွက်နေဆဲဖြစ်သည်။ JPL validation/proxy မချိတ်မီ အဆိုပါအဖြေများကို JPL အတည်ပြုချက်ရပြီးသားဟု မယူဆပါနှင့်။</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                <h3 className="font-bold text-slate-800 text-sm">အပြင်ဘက် AI Agent ကို စမ်းသပ်ခိုင်းရာတွင်</h3>
+                <p className="text-xs leading-relaxed text-slate-600">အောက်ပါဖိုင်များပါသော package ကို အသုံးပြုပါ။ `AI_AGENT_TEST_PROMPT.md` ထဲမှာ မဖြစ်မနေ စစ်ဆေးရမည့်အချက်များ၊ စမ်းသပ်မှုအစီရင်ခံစာပုံစံနဲ့ “မစမ်းသပ်ရသေးတာကို မအောင်မြင်ကြောင်း မဆိုရ” ဆိုတဲ့ စည်းမျဉ်းတွေ ပါဝင်ပါတယ်။</p>
+              </div>
+            </div>
+          )}
 
           {/* TAB 1: TRANSIT */}
           {activeTab === 'transit' && isTrop && (
@@ -4962,7 +5124,7 @@
                   </div>
                 </div>
               )}
-              <StrengthPanel planets={birthPlanets} jd={birthJD} lat={parseFloat(birthLat) || 16.84} lon={parseFloat(birthLon) || 96.17} ayanamsa={ayanamsa} nodeType={nodeType} />
+              <StrengthPanel planets={birthPlanets} jd={birthJD} lat={finiteNumber(birthLat, 16.84)} lon={finiteNumber(birthLon, 96.17)} ayanamsa={ayanamsa} nodeType={nodeType} />
               <NakshatraPanel planets={birthPlanets} />
                   <MindPanel planets={birthPlanets} />
               {/* v6: မွေးချိန် ပြန်ရှာရန် (Rectification) */}
@@ -5097,12 +5259,12 @@
                   <span className="text-[10px] bg-emerald-700 px-2 py-0.5 rounded font-semibold">Executive Overview</span>
                 </div>
                 <div>
-                  <div className="text-[11px] text-amber-300 font-bold">ခန့်မှန်းခြေ ဓနဥစ္စာ အဆင့်အတန်း (Estimated Net Worth):</div>
+                  <div className="text-[11px] text-amber-300 font-bold">ဓနအလားအလာ အညွှန်း (Astrological Wealth Potential):</div>
                   <div className="text-sm font-bold mt-0.5">{lifeOverview.netWorthTier}</div>
                   <p className="text-emerald-100 text-[11px] mt-1 leading-relaxed">{lifeOverview.netWorthDesc}</p>
                     <div className="mt-2 rounded-lg border border-emerald-600/70 bg-black/15 p-2.5 space-y-2">
                       <div className="text-[11px] font-bold text-amber-200">💵 USD ဓနပမာဏ ခန့်မှန်းချက် (Scenario Estimate)</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                         <label className="text-[10px] text-emerald-100">နိုင်ငံ/စီးပွားရေးအဆင့်
                           <select value={wealthEconomy} onChange={e=>setWealthEconomy(e.target.value)} className="mt-1 w-full rounded border border-emerald-500 bg-emerald-950 text-white p-1.5 text-[11px]">
                             <option value="high">ဖွံ့ဖြိုးပြီး / High-income</option>
@@ -5117,17 +5279,23 @@
                         <label className="text-[10px] text-emerald-100">နှစ်စဉ်ဝင်ငွေ (USD, မဖြည့်လည်းရ)
                           <input type="number" min="0" value={wealthAnnualIncome} onChange={e=>setWealthAnnualIncome(e.target.value)} placeholder="ဥပမာ 12000" className="mt-1 w-full rounded border border-emerald-500 bg-emerald-950 text-white p-1.5 text-[11px] placeholder:text-emerald-400" />
                         </label>
+                        <label className="text-[10px] text-emerald-100">နှစ်စဉ် စုဆောင်းနှုန်း (%; အလွတ်ထားလျှင် စီးပွားရေးအဆင့်အလိုက် ယူဆချက်)
+                          <input type="number" min="0" max="100" value={wealthSavingsRate} onChange={e=>setWealthSavingsRate(e.target.value)} placeholder={`အလိုအလျောက် ${wealthEstimate.savingsRate}%`} className="mt-1 w-full rounded border border-emerald-500 bg-emerald-950 text-white p-1.5 text-[11px] placeholder:text-emerald-400" />
+                        </label>
+                        <label className="text-[10px] text-emerald-100">ခန့်မှန်းကာလ (နှစ်)
+                          <input type="number" min="1" max="80" value={wealthHorizon} onChange={e=>setWealthHorizon(e.target.value)} className="mt-1 w-full rounded border border-emerald-500 bg-emerald-950 text-white p-1.5 text-[11px]" />
+                        </label>
                       </div>
                       <div className="rounded-md bg-white/10 p-2">
-                        <div className="text-[9px] text-emerald-200">ခန့်မှန်း Net Worth Range · USD</div>
-                        <div className="text-lg font-extrabold text-white">{formatUSD(wealthEstimate.low)} – {formatUSD(wealthEstimate.high)}</div>
+                        <div className="text-[9px] text-emerald-200">ငွေကြေးအခြေအနေ Scenario · USD</div>
+                        <div className="text-lg font-extrabold text-white">{wealthEstimate.mode === 'insufficient' ? 'အချက်အလက် ဖြည့်ပါ' : wealthEstimate.mode === 'current' ? formatUSD(wealthEstimate.low) + ' (လက်ရှိ)' : formatUSD(wealthEstimate.low) + ' – ' + formatUSD(wealthEstimate.high)}</div>
                         <div className="text-[9px] text-emerald-100 mt-0.5">Astrological Wealth Potential: {lifeOverview.wealthScore || '—'}/100 · {wealthEstimate.economy}</div>
-                        <p className="text-[9px] text-emerald-100/80 mt-1">{wealthEstimate.mode === 'input' ? 'လက်ရှိပိုင်ဆိုင်မှု + နှစ်စဉ်ဝင်ငွေမှ နောက် ၁၀ နှစ်အတွင်း စုဆောင်းနိုင်မှုကို အနိမ့်/အမြင့် scenario ဖြင့် တွက်ထားသည်။' : 'လက်ရှိပိုင်ဆိုင်မှု/ဝင်ငွေ မဖြည့်ထားသဖြင့် ဇာတာ Score နှင့် စီးပွားရေးအဆင့်အပေါ် အခြေခံသော ကျယ်ပြန့်သည့် အညွှန်း Range ဖြစ်သည်။'}</p>
+                        <p className="text-[9px] text-emerald-100/80 mt-1">{wealthEstimate.mode === 'insufficient' ? 'USD ခန့်မှန်းချက်အတွက် လက်ရှိ Net Worth သို့မဟုတ် နှစ်စဉ်ဝင်ငွေ အနည်းဆုံးတစ်ခု ဖြည့်ပါ။ ဇာတာ Score တစ်ခုတည်းမှ ငွေပမာဏကို မှန်ကန်စွာ မတွက်နိုင်ပါ။' : wealthEstimate.mode === 'current' ? 'လက်ရှိ Net Worth ကိုသာ ပြထားသည်။ အနာဂတ်အခြေအနေ ခန့်မှန်းရန် နှစ်စဉ်ဝင်ငွေကိုလည်း ဖြည့်ပါ။' : `နှစ် ${wealthEstimate.years} အတွက် scenario ဖြစ်သည်။ စုဆောင်းနှုန်း ${wealthEstimate.savingsRate}% ${wealthEstimate.savingsRateProvided ? '(ကိုယ်တိုင်ထည့်သွင်းထားသည်)' : '(စီးပွားရေးအဆင့်အလိုက် ယူဆထားသည့် default — စာရင်းအင်းအချက်အလက် မဟုတ်ပါ)'}၊ အနိမ့်အခြေအနေ အမြတ်နှုန်း 0% နှင့် အမြင့်အခြေအနေ အမည်ခံအမြတ်နှုန်း 5% ကို ယူဆထားသည်။ ${wealthEstimate.initialAssetsProvided ? '' : 'လက်ရှိပိုင်ဆိုင်မှု မဖြည့်ထားသဖြင့် စတင်ပိုင်ဆိုင်မှုကို $0 ဟု ယူဆထားသည်။'} အခွန်၊ အခကြေးငွေနှင့် ငွေဖောင်းပွမှု မပါဝင်ပါ။`}</p>
                       </div>
-                      <p className="text-[9px] text-emerald-200/70">သတိပြုရန် — နိုင်ငံအဆင့်သည် ပုံမှန်ဝင်ငွေနှင့် ပိုင်ဆိုင်မှုတည်ဆောက်နိုင်မှုအတွက် context သာဖြစ်ပြီး လူတစ်ဦး၏ ဓနကို တိုက်ရိုက်မဆုံးဖြတ်ပါ။ ဤကိန်းဂဏန်းများသည် စာရင်းအင်းအရ အတည်ပြုထားသော ဗေဒင်ခန့်မှန်းချက်မဟုတ်ဘဲ ယူဆချက်အခြေပြု scenario ဖြစ်သည်။</p>
+                      <p className="text-[9px] text-emerald-200/70">သတိပြုရန် — နိုင်ငံ/စီးပွားရေးအဆင့်သည် အလွတ်ထားသော စုဆောင်းနှုန်းအတွက် ယူဆချက်သာ ရွေးပေးသည် (5–15%)၊ တရားဝင်နိုင်ငံစာရင်းအင်း မဟုတ်ပါ။ ငွေကြေး Scenario သည် သင်ဖြည့်သွင်းသော အချက်အလက်နှင့် ဖော်ပြထားသည့် ယူဆချက်များအပေါ် မူတည်သည်။ ဇာတာအညွှန်းနှင့် USD ခန့်မှန်းချက်ကို သီးခြားထားရှိထားပြီး နှစ်ခုစလုံးသည် အနာဂတ်ရလဒ်ကို အာမမခံပါ။</p>
                     </div>
                   <div className="mt-2 grid grid-cols-2 gap-1">
-                    <div className="bg-white/10 rounded p-1.5"><span className="text-[9px] text-emerald-200">Evidence</span><div className="text-[10px]">{lifeOverview.evidence?.[0] || 'Chart evidence ကို ပေါင်းစပ်တွက်ထားသည်။'}</div></div>
+                    <div className="bg-white/10 rounded p-1.5"><span className="text-[9px] text-emerald-200">Evidence</span><div className="text-[10px]">{lifeOverview.evidence?.slice(0, 2).join(' · ') || 'ဇာတာအထောက်အထားများကို ပေါင်းစပ်တွက်ထားသည်။'}</div></div>
                     <div className="bg-white/10 rounded p-1.5"><span className="text-[9px] text-emerald-200">Interpretation</span><div className="text-[10px]">Promise → Dasha → Transit အစဉ်ဖြင့် အကျိုးပေးချိန်ကို ခွဲဖတ်ပါ။</div></div>
                   </div>
                 </div>
@@ -5144,7 +5312,7 @@
                   </div>
                   {lifeOverview.incomeSources?.length > 0 && (
                     <div className="space-y-1.5">
-                      <div className="text-[10px] font-bold text-emerald-800">ဝင်ငွေ ဝင် လာ မယ့် ပုံစံ (အဓိက)</div>
+                      <div className="text-[10px] font-bold text-emerald-800">ဝင်ငွေရရှိနိုင်သည့် ပုံစံများ (အဓိက)</div>
                       {lifeOverview.incomeSources.map((s, i) => (
                         <div key={s.id} className="text-[11px] leading-relaxed"><span className="font-bold text-slate-700">{i + 1}. {s.label}</span><div className="text-slate-500">{s.why}</div></div>
                       ))}
@@ -5173,10 +5341,10 @@
                     <span className="font-bold text-[13px] text-amber-300">👑 ထူးခြား ဇာတာ — Exceptional Pattern</span>
                     <span className="text-[9px] bg-amber-400/20 text-amber-200 px-2 py-0.5 rounded font-semibold">တင်းကျပ် တဲ့ စည်း ကိုက် ညီ မှ ပေါ် သည်</span>
                   </div>
-                  {lifeOverview.exceptional.band && (<div><div className="text-[11px] text-amber-300 font-bold">ဓန အင်အား အဆင့် (Capacity):</div><div className="text-sm font-bold mt-0.5">{lifeOverview.exceptional.band}</div>{lifeOverview.exceptional.pct != null && (<div className="text-[9px] text-amber-200/60 mt-0.5">အဖက်ဖက် ချိန်ညှိ အင်အား: {lifeOverview.exceptional.pct}%</div>)}</div>)}
+                  {lifeOverview.exceptional.band && (<div><div className="text-[11px] text-amber-300 font-bold">ဓန အင်အား အဆင့် (Capacity):</div><div className="text-sm font-bold mt-0.5">{lifeOverview.exceptional.band}</div>{lifeOverview.exceptional.pct != null && (<div className="text-[9px] text-amber-200/60 mt-0.5">အချက်အလက်များ ပေါင်းစပ်အညွှန်း: {lifeOverview.exceptional.pct}%</div>)}</div>)}
                   {lifeOverview.exceptional.honor && (<div><div className="text-[11px] text-amber-300 font-bold">ဂုဏ် / ဆု အဆင့်:</div><div className="text-[12px] font-bold mt-0.5">{lifeOverview.exceptional.honor}</div></div>)}
                   {lifeOverview.exceptional.luxury?.length > 0 && (<div className="space-y-0.5">{lifeOverview.exceptional.luxury.map((x, i) => (<p key={i} className="text-[11px] text-indigo-100 leading-relaxed">✦ {x}</p>))}</div>)}
-                  <p className="text-[10px] text-indigo-200/80 leading-relaxed border-t border-white/10 pt-1.5">ဒီ အကွက် ဟာ ဇာတာ ရဲ့ အထောက် အထား ဘက် စုံ (ယုဂ အထပ်, ဂြိုဟ် အင် အား, D9 အတည်ပြု ချက်, လဂ် အရှင် အခြေအနေ) စုံပြီး တင်းကျပ် တဲ့ စည်း ကျော် မှ သာ ပေါ် ပါ တယ်။ အင်အား အဆင့် ကို ပြ တာ ဖြစ်ပြီး ပမာဏ အာမ ခံချက် မဟုတ် ပါ — ဒဿာ အချိန် နဲ့ ကိုယ်တိုင် ကြိုးစား မှု က အကောင် အထည် ဖော် မှု ကို ဆုံးဖြတ် ပါ တယ်။</p>
+                  <p className="text-[10px] text-indigo-200/80 leading-relaxed border-t border-white/10 pt-1.5">ဤအပိုင်းသည် ယောဂများ၊ ဂြိုဟ်အင်အား၊ D9 အတည်ပြုချက်နှင့် လဂ်အရှင်အခြေအနေတို့ကို စုပေါင်းစစ်ဆေးပြီး သတ်မှတ်ချက်များ ပြည့်မီမှသာ ပေါ်လာသည်။ ဓနတည်ဆောက်နိုင်မှုဆိုင်ရာ အညွှန်းသာဖြစ်ပြီး အမှန်တကယ်ပိုင်ဆိုင်မည့် ပမာဏကို အာမခံခြင်းမဟုတ်ပါ။ ဒသာကာလ၊ ကိုယ်ပိုင်ဆုံးဖြတ်ချက်နှင့် လက်တွေ့အခြေအနေများက ရလဒ်ကို သက်ရောက်စေသည်။</p>
                 </div>
               )}
 
@@ -5694,7 +5862,7 @@
           )}
 
           {/* TAB 8: MATCHING (ဇာတာတိုက်စစ်) */}
-          {activeTab === 'place' && <PlaceTab ayanamsa={ayanamsa} p={birthPlanets} dashaTree={dashaTree} kpData={kpData} birthJD={birthJD} birthLat={parseFloat(birthLat) || 16.84} birthLon={parseFloat(birthLon) || 96.17} nodeType={nodeType} birthPlace={birthPlace} birthName={birthName} />}
+          {activeTab === 'place' && <PlaceTab ayanamsa={ayanamsa} p={birthPlanets} dashaTree={dashaTree} kpData={kpData} birthJD={birthJD} birthLat={finiteNumber(birthLat, 16.84)} birthLon={finiteNumber(birthLon, 96.17)} nodeType={nodeType} birthPlace={birthPlace} birthName={birthName} />}
 
           {activeTab === 'relate' && <RelateTab ayanamsa={ayanamsa} nodeType={nodeType} savedProfiles={savedProfiles} />}
 
