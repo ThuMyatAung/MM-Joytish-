@@ -54,9 +54,31 @@
     // Startup watchdog: if React/Babel or JSX compilation fails, replace the endless spinner with actionable diagnostics.
     (function () {
       var startedAt = Date.now();
+      var startupErrors = [];
+      function rememberError(value) {
+        var message = String(value == null ? 'Unknown startup error' : value).slice(0, 700);
+        if (startupErrors.indexOf(message) === -1 && startupErrors.length < 5) startupErrors.push(message);
+      }
       window.addEventListener('error', function (event) {
-        try { console.error('[Astro MM startup]', event.message || event.error || 'Unknown script error'); } catch (_) {}
+        var msg = (event && event.message) ? event.message : ((event && event.error) ? String(event.error) : 'Unknown script error');
+        if (event && event.filename) msg += ' (' + event.filename.split('/').pop() + ':' + (event.lineno || '?') + ':' + (event.colno || '?') + ')';
+        rememberError(msg);
+        try { console.error('[Astro MM startup]', msg); } catch (_) {}
       });
+      window.addEventListener('unhandledrejection', function (event) {
+        rememberError('Unhandled Promise: ' + (event && event.reason ? (event.reason.stack || event.reason.message || String(event.reason)) : 'unknown'));
+      });
+      // Babel standalone sometimes reports JSX transform errors through console.error only.
+      var originalConsoleError = console.error ? console.error.bind(console) : function () {};
+      console.error = function () {
+        try {
+          var message = Array.prototype.slice.call(arguments).map(function (x) {
+            return typeof x === 'string' ? x : (x && (x.stack || x.message) ? (x.stack || x.message) : String(x));
+          }).join(' ');
+          if (/babel|jsx|syntaxerror|transform|uncaught|error/i.test(message)) rememberError(message);
+        } catch (_) {}
+        originalConsoleError.apply(console, arguments);
+      };
       window.setTimeout(function () {
         var root = document.getElementById('root');
         if (!root) return;
@@ -68,15 +90,18 @@
         if (!window.Babel) missing.push('Babel JSX compiler');
         var detail = missing.length
           ? 'မတက်လာသော dependency: ' + missing.join(', ') + '. Internet/CDN connection ကို စစ်ပါ။'
-          : 'React/Babel library များ ရှိနေသော်လည်း App code စတင်မတက်လာပါ။ JSX compile error သို့မဟုတ် JavaScript startup error ဖြစ်နိုင်သည်။';
-        root.innerHTML = '<div style="max-width:620px;margin:10vh auto;padding:22px;font:14px/1.65 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#7f1d1d;background:#fff7ed;border:1px solid #fdba74;border-radius:14px"><h2 style="margin:0 0 10px;font-size:19px">Astro MM စတင်ဖွင့်ရာတွင် အခက်အခဲရှိနေပါသည်</h2><p>' + detail + '</p><p style="color:#444">အင်တာနက်ချိတ်ဆက်မှုကို စစ်ပြီး Page ကို Reload လုပ်ပါ။ မပြေလည်ပါက Browser Console ရှိ ပထမဆုံး အနီရောင် Error ကို ပို့ပေးပါ။ GitHub Pages မှာ ဖွင့်ထားပါက repository ရဲ့ နောက်ဆုံး commit/deployment ပြီးမပြီးလည်း စစ်ပါ။</p><button onclick="location.reload()" style="background:#9f1239;color:white;padding:9px 14px;border:0;border-radius:8px;font-weight:700">Reload App</button><p style="font-size:11px;color:#78716c;margin-top:12px">Startup diagnostic · ' + Math.round((Date.now()-startedAt)/1000) + 's</p></div>';
+          : 'React/Babel library များ ရှိနေသော်လည်း App code စတင်မတက်လာပါ။ အောက်ပါ diagnostic ကို စစ်ပါ။';
+        var errorHtml = startupErrors.length
+          ? '<div style="margin-top:12px;padding:12px;background:#fff;border:1px solid #fecaca;border-radius:8px"><b>တွေ့ရှိထားသော Error</b><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 monospace;margin:6px 0 0">' + startupErrors.map(function (x) { return x.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }).join('\n\n') + '</pre></div>'
+          : '<p>သီးခြား Error စာသားကို မဖမ်းမိသေးပါ။ Browser Console ထဲက ပထမဆုံး အနီရောင် Error ကို စစ်ဆေးရန် လိုပါမည်။</p>';
+        root.innerHTML = '<div style="max-width:700px;margin:7vh auto;padding:22px;font:14px/1.65 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#7f1d1d;background:#fff7ed;border:1px solid #fdba74;border-radius:14px"><h2 style="margin:0 0 10px;font-size:19px">Astro MM စတင်ဖွင့်ရာတွင် အခက်အခဲရှိနေပါသည်</h2><p>' + detail + '</p>' + errorHtml + '<p style="color:#444">ဒီ Error အပိုင်းကို screenshot ရိုက်ပြီး ပို့ပေးပါ။ GitHub Pages ရဲ့ နောက်ဆုံး deployment ပြီးမပြီးလည်း စစ်ပါ။</p><button onclick="location.reload()" style="background:#9f1239;color:white;padding:9px 14px;border:0;border-radius:8px;font-weight:700">Reload App</button><p style="font-size:11px;color:#78716c;margin-top:12px">Startup diagnostic · ' + Math.round((Date.now()-startedAt)/1000) + 's</p></div>';
       }, 18000);
     })();
   </script>
 
   <script type="text/babel">
     // v6.15 (2026-10-15): Tropical = pure Western — CircleChart (Placidus), Western-format tables, Western readings + synastry; Astrocartography shows ONLY under Tropical. Vedic layers (nakshatra, dasha, Ashtakoota, yogas, Prashna, Job/Place layers) are sidereal-only. Sidereal code paths unchanged from v6.14.
-    // v6.25 (2026-10-18): Added CDN fallback sources and a startup watchdog that explains dependency/Babel startup failures instead of spinning forever. Prior v6.24 logic retained.
+    // v6.26 (2026-10-18): Startup diagnostics now capture visible JavaScript errors, unhandled promise rejections, and Babel/JSX console errors so a failed GitHub Pages startup shows actionable details. Prior app logic retained.
     // v6.24 (2026-10-18): Fixed D2 Hora scoring so it is not treated as a 12-house chart; corrected KP rectification property lookup; excluded Sun from Sunapha/Anapha and added Moon-conjunction check for Kemadruma; corrected Burmese typos; expanded exceptional blue card with explicit USD wealth tiers and special-achievement indicators. These are interpretive indicators, not verified outcome predictions.
     // v6.23 (2026-10-17): Added an in-app Core Audit Lab with repeatable invariant tests, JSON export/copy, and explicit provider/accuracy disclosures. This is a test harness, not a claim that every traditional method is fully validated.
     // v6.22 (2026-10-17): Correctness pass — preserve valid zero coordinates/UTC offsets; pass selected node mode through matching charts; clamp impossible calendar dates; extend Vimshottari timelines to cover long lifetimes; evaluate current dasha dates in the birth-place timezone and parse date-only year labels without device-timezone shifts; correct Mahapurusha sign sets and require actual Kendra–Trikona association for Raja Yoga patterns; exclude lunar nodes from Western stellium counts. Wealth USD is now a separate transparent savings/investment scenario and is never inferred from the astrology score. Extended Swiss Ephemeris spot-check (1900–2100 sample dates): Moon error up to 2.41 arcmin, Jupiter 6.01 arcmin, Saturn 12.03 arcmin; these are sampled errors, not guaranteed bounds. Approximate modules remain explicitly labelled rather than claimed as classical-complete.
