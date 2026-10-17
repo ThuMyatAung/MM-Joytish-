@@ -52,6 +52,7 @@
 
   <script type="text/babel">
     // v6.15 (2026-10-15): Tropical = pure Western — CircleChart (Placidus), Western-format tables, Western readings + synastry; Astrocartography shows ONLY under Tropical. Vedic layers (nakshatra, dasha, Ashtakoota, yogas, Prashna, Job/Place layers) are sidereal-only. Sidereal code paths unchanged from v6.14.
+    // v6.24 (2026-10-18): Fixed D2 Hora scoring so it is not treated as a 12-house chart; corrected KP rectification property lookup; excluded Sun from Sunapha/Anapha and added Moon-conjunction check for Kemadruma; corrected Burmese typos; expanded exceptional blue card with explicit USD wealth tiers and special-achievement indicators. These are interpretive indicators, not verified outcome predictions.
     // v6.23 (2026-10-17): Added an in-app Core Audit Lab with repeatable invariant tests, JSON export/copy, and explicit provider/accuracy disclosures. This is a test harness, not a claim that every traditional method is fully validated.
     // v6.22 (2026-10-17): Correctness pass — preserve valid zero coordinates/UTC offsets; pass selected node mode through matching charts; clamp impossible calendar dates; extend Vimshottari timelines to cover long lifetimes; evaluate current dasha dates in the birth-place timezone and parse date-only year labels without device-timezone shifts; correct Mahapurusha sign sets and require actual Kendra–Trikona association for Raja Yoga patterns; exclude lunar nodes from Western stellium counts. Wealth USD is now a separate transparent savings/investment scenario and is never inferred from the astrology score. Extended Swiss Ephemeris spot-check (1900–2100 sample dates): Moon error up to 2.41 arcmin, Jupiter 6.01 arcmin, Saturn 12.03 arcmin; these are sampled errors, not guaranteed bounds. Approximate modules remain explicitly labelled rather than claimed as classical-complete.
     // v6.16 (2026-10-15): Western Layer 2 — Solar Return + Secondary Progressions (Readings), aspect patterns (Yoga), Composite chart + partner profiles (Matching/Relate), Vocational + Relocation (Place). All tropical-only; sidereal unchanged.
@@ -930,7 +931,10 @@
       def.houses.forEach(h=>{ if(_lordOfHouse(bp,h)===planet) sc=Math.max(sc,2.5); });
       if(hs===def.primary) sc=Math.max(sc,3);
       if(def.houses.includes(hs)) sc=Math.max(sc,1.5);
-      if(kpData&&kpData.houses){ def.houses.forEach(h=>{ const hd=kpData.houses[h]; if(hd&&(hd.significators||[]).some(x=>x.planet===planet)) sc+=1; }); }
+      if (kpData && kpData.planetSig && kpData.planetSig[planet]) {
+        const sigAll = kpData.planetSig[planet].all || [];
+        if (def.houses.some((house) => sigAll.includes(house))) sc += 1;
+      }
       return sc;
     }
     function rectifyBirthTime(opts){
@@ -1037,14 +1041,14 @@
       'တနင်္ဂနွေဟာ ပြိဿရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် တန်ဖိုးကို တည်ငြိမ်မှုနဲ့ တိုင်းတယ်၊ ပြောပြီးသား စကားကို ပြန် မပြင်ချင်ဘူး။ ဂုဏ် ကို ဖြည်းဖြည်း တည်ဆောက်ပြီး ကိုယ့် နေရာကို လွယ် လွယ် မစွန့်ဘူး။',
       'တနင်္ဂနွေဟာ မေထုန်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့်ကိုယ်ကိုယ် အတွေးအခေါ်၊ စကားပြော စွမ်းရည်နဲ့ ဖော်ပြတယ်။ သိချင်စိတ် များပြီး အခြေအနေ အလိုက် လိုက်လျော ညီထွေ ပြောင်းနိုင်တယ်။',
       'တနင်္ဂနွေဟာ ကရကဋ်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် အခြေခံက မိသားစုနဲ့ အမြစ်တွယ် နေတယ်။ အပြင်မှာ ဦးဆောင် နေရပေမယ့် အတွင်းမှာ မိသားစု အသိအမှတ်ပြုမှု ကို လိုတယ်။ ကိုယ့် လူတွေကို ကာကွယ်တဲ့ နေရာမှာ ခေါင်းဆောင် ဖြစ်လာတတ်တယ်။',
-      'တနင်္ဂနွေဟာ သိဟ်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် ဖြစ်တည်မှုက ထင်ရှားတယ်၊ လူအလယ်မှာ နေရာ ရတာ သဘာဝ ကျတယ်။ ဂုဏ် သိ္က္ခာကို အသက်ထက် တန်ဖိုး ထားပြီး ရက်ရောမှု နဲ့ ဦးဆောင်မှုက ကိုယ့် ပုံရိပ်ပဲ။',
+      'တနင်္ဂနွေဟာ သိဟ်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် ဖြစ်တည်မှုက ထင်ရှားတယ်၊ လူအလယ်မှာ နေရာ ရတာ သဘာဝ ကျတယ်။ ဂုဏ်သိက္ခာကို အသက်ထက် တန်ဖိုး ထားပြီး ရက်ရောမှု နဲ့ ဦးဆောင်မှုက ကိုယ့် ပုံရိပ်ပဲ။',
       'တနင်္ဂနွေဟာ ကန်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့်ကိုယ်ကိုယ် အရည်အချင်း နဲ့ တိုင်းတယ် — အလုပ် ကောင်းကောင်း လုပ်နိုင်မှ ကိုယ့်ကိုယ်ကိုယ် ကျေနပ်တယ်။ ကိုယ့် အမှားကို ကိုယ်တိုင် အရင် မြင်တတ်ပြီး ပြင်ရင်း တိုးတက် လာ တတ်တယ်။',
       'တနင်္ဂနွေဟာ တူရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် ရပ်တည်ချက်ကို သူများ သဘောထားနဲ့ ညှိပြီးမှ ပြတတ်တယ်။ တစ်ယောက်တည်း ဆုံးဖြတ်ရတာထက် ပူးပေါင်း ဆုံးဖြတ်ရတာ ပို သက်သာတယ်။ ကိုယ့် ဆန္ဒ ကို နောက်ပို့ ထားတာ များလာရင် အတွင်းမှာ မကျေနပ်မှု စု လာ တတ်တယ်။',
       'တနင်္ဂနွေဟာ ဗြိစ္ဆာရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် အတွင်းအား နက်တယ်၊ အပြင်ကို အများ မပြဘူး။ အကျပ် ကြုံရင် ပို ထက်လာ တတ်ပြီး ကိုယ့် အားနည်းချက်ကို သူများ မြင်မှာ မကြိုက်ဘူး။',
       'တနင်္ဂနွေဟာ ဓနုရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် ဘဝ အမြင်က ကျယ်တယ်၊ ယုံကြည်ချက်နဲ့ အမှန်တရားကို အလေး ထားတယ်။ ကိုယ့် ဆုံးဖြတ်ချက်ကို ကိုယ့် နိယာမ အတိုင်း ချတတ်ပြီး ဆရာ/လမ်းပြတွေရဲ့ လွှမ်းမိုးမှု ဘဝမှာ ရှိတယ်။',
       'တနင်္ဂနွေဟာ မကာရရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် တန်ဖိုးကို လုပ်ဆောင်ချက် ရလဒ် နဲ့ သက်သေ ပြချင်တယ်။ ရည်မှန်းချက် ကို ဖြည်းဖြည်း မှန်မှန် တက်ပြီး တာဝန်ယူမှု က ကိုယ့် ဂုဏ်ပဲ။',
       'တနင်္ဂနွေဟာ ကုံရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် ဖြစ်တည်မှုက အများအကျိုး၊ အဖွဲ့အစည်း နဲ့ ချိတ်ဆက် နေတယ်။ ပုံမှန် လမ်းကို မလိုက်ဘဲ ကိုယ့် နည်းနဲ့ ရပ်တည်ချင်ပြီး ကိုယ့် အမြင်ကို လွယ်လွယ် မပြောင်းဘူး။',
-      'တနင်္ဂနွေဟာ မိန်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် အတ်တ က ပျော့တယ်၊ သူများ အတွက် စွန့်လွှတ် ပေးရတာကို ကျေနပ်မှု ရှာတတ်တယ်။ စိတ်ကူး ကမ္ဘာ ကြီးပြီး အဓိပ္ပာယ် ရှိတဲ့ အလုပ် မဟုတ်ရင် ကိုယ့် အား အပြည့် မထည့်ချင်ဘူး။'
+      'တနင်္ဂနွေဟာ မိန်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ကိုယ့် အတ္တ က ပျော့တယ်၊ သူများ အတွက် စွန့်လွှတ် ပေးရတာကို ကျေနပ်မှု ရှာတတ်တယ်။ စိတ်ကူး ကမ္ဘာ ကြီးပြီး အဓိပ္ပာယ် ရှိတဲ့ အလုပ် မဟုတ်ရင် ကိုယ့် အား အပြည့် မထည့်ချင်ဘူး။'
       ],
       Mars: [
       'အင်္ဂါဟာ မိဿရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် စွမ်းအင် မြန်ပြီး ရဲရင့်တယ်၊ စလိုက်ရင် မရပ်ချင်ဘူး။ ပြိုင်ရတာ ကြိုက်ပြီး ဒေါသ ထွက်ရင်လည်း တန်း ထွက်တယ်။ အားကို ထုတ် သုံးစရာ နေရာ ရှိမှ လူက ဟန်ချက် ညီတယ်။',
@@ -1072,7 +1076,7 @@
       'ဗုဒ္ဓဟူးဟာ ဓနုရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် အတွေးက ကျယ်တယ်၊ မြင်ကွင်း ကြီးကို အရင် မြင်ပြီး အသေးစိတ် ကို နောက်မှ လိုက်တတ်တယ်။ အမှန်တရား ကို ပွင့်ပွင့် လင်းလင်း ပြောချင်ပြီး သင်ယူ/သင်ကြား မှု ဖက် အား ကောင်းတယ်။',
       'ဗုဒ္ဓဟူးဟာ မကာရရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် အတွေးက လက်တွေ့ နဲ့ ရလဒ် ကို ချိန် တယ်။ စီမံ ခန့်ခွဲမှု၊ အချိန်နဲ့ အရင်းအမြစ် တွက်ချက်မှု ကောင်းပြီး စကားပြော တိုတို ထိထိ ပြောတတ်တယ်။',
       'ဗုဒ္ဓဟူးဟာ ကုံရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် အတွေးက မူလ မဟုတ်တဲ့ လမ်း ကို ရှာတယ်။ စနစ် တွေ၊ နည်းပညာ၊ အနာဂတ် အမြင် ဖက် စိတ် စီးပြီး အများ နဲ့ မတူတဲ့ အဖြေကို တွေ့ တတ်တယ်။',
-      'ဗုဒ္ဓဟူးဟာ မိန်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် အတွေးက ယုတ်တိ ထက် စိတ်ကူး/အတွင်းသိ ဖက် ပို စီးတယ်။ တွက်ချက်မှု အသေးစိတ် မှာ လွဲချော် လွယ်ပေမယ့် ခံစားချက် ကို နားလည်တဲ့ ဉာဏ်၊ အနုပညာ စိတ်ကူး ဖက် အားကောင်းတယ်။ စာရွက် စာတမ်း ကိစ္စတွေမှာ နှစ်ခါ စစ် သင့်တယ်။'
+      'ဗုဒ္ဓဟူးဟာ မိန်ရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် အတွေးက ယုတ္တိ ထက် စိတ်ကူး/အတွင်းသိ ဖက် ပို စီးတယ်။ တွက်ချက်မှု အသေးစိတ် မှာ လွဲချော် လွယ်ပေမယ့် ခံစားချက် ကို နားလည်တဲ့ ဉာဏ်၊ အနုပညာ စိတ်ကူး ဖက် အားကောင်းတယ်။ စာရွက် စာတမ်း ကိစ္စတွေမှာ နှစ်ခါ စစ် သင့်တယ်။'
       ],
       Jupiter: [
       'ကြာသပတေးဟာ မိဿရာသီမှာ ရှိနေတယ်။ ဒီရပ်တည်မှုကြောင့် ယုံကြည်ချက်ကို ရဲရဲ လုပ် ပြတယ်။ အကြီး သဘော နဲ့ ဦးဆောင် သင်ပြချင်ပြီး ကိုယ့် လမ်းကို ကိုယ် ဖွင့် တတ်တယ်။',
@@ -1280,7 +1284,7 @@
       'Jupiter|Mars': 'အင်္ဂါနဲ့ ကြာသပတေး ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် ရဲရင့်မှု ကို ပညာ က လမ်းညွှန် တယ်။ လုပ်ရည်း ကိုင်ရည်း နဲ့ တရား မျှတမှု ပေါင်းပြီး ဦးဆောင် အကြံပေး နေရာ ကိုက်တယ်။',
       'Mars|Venus': 'အင်္ဂါနဲ့ သောကြာ ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် အချစ်/ဆန္ဒ ပြင်းထန်ပြီး အနုပညာ စွမ်းအင် ကြီးတယ်။ ဆက်ဆံရေး မှာ စိတ် လိုက်မှု များတာ ထိန်းဖို့ လိုပြီး ဖန်တီး အလုပ်မှာ ဒီ အားက ရွှေ ဖြစ်လာတယ်။',
       'Mars|Saturn': 'အင်္ဂါနဲ့ စနေ ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် စွမ်းအင် ကို စည်းကမ်း က ဖိ ထား သလို ဖြစ် တတ်တယ် — လုပ်ချင်စိတ် နဲ့ အဟန့် အတား အား ပြိုင် နေ တယ်။ စိတ်ရှည် စွာ တွန်း နိုင်ရင် ကြာရှည် ခံ တဲ့ လုပ်ရည်း ဖြစ်လာပြီး အလျင် လုပ်ရင် ထိခိုက်/ပွတ်တိုက် ဖြစ်လွယ်တယ်။',
-      'Mars|Rahu': 'အင်္ဂါနဲ့ ရာဟု ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် စွမ်းအင် အဆမတန် ကြီးပြီး အန်တရာယ် ယူ ရဲတယ်။ ဒေါသ/အလျင် ဆုံးဖြတ်မှု ကို ထိန်းဖို့ အထူး လိုပြီး နည်းပညာ/စက် အလုပ်မှာ ဒီ အားကို လမ်းကြောင်း မှန် ထားရင် ကြီးပွား တတ်တယ်။',
+      'Mars|Rahu': 'အင်္ဂါနဲ့ ရာဟု ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် စွမ်းအင် အဆမတန် ကြီးပြီး အန္တရာယ် ယူ ရဲတယ်။ ဒေါသ/အလျင် ဆုံးဖြတ်မှု ကို ထိန်းဖို့ အထူး လိုပြီး နည်းပညာ/စက် အလုပ်မှာ ဒီ အားကို လမ်းကြောင်း မှန် ထားရင် ကြီးပွား တတ်တယ်။',
       'Ketu|Mars': 'အင်္ဂါနဲ့ ကိတ် ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် တုံ့ပြန်မှု လျင်မြန် ပြီး အတွင်းသိ နဲ့ လုပ်တတ်တယ်။ ဒေါသ က ရုတ်တရက် ထွက် တတ်ပြီး ခွဲစိတ်/နည်းပညာ တိကျ အလုပ် တွေ ကိုက်တယ်။',
       'Jupiter|Mercury': 'ဗုဒ္ဓဟူးနဲ့ ကြာသပတေး ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် သင်ယူ အား နဲ့ သင်ကြား အား နှစ်ခု လုံး ကောင်းတယ်။ အကြံဉာဏ် အလုပ်၊ စာရေး၊ ပညာရေး နယ်ပယ် တွေ ကိုက်တယ်။',
       'Mercury|Venus': 'ဗုဒ္ဓဟူးနဲ့ သောကြာ ပူးယှဉ် နေတယ်။ ဒီရပ်တည်မှုကြောင့် စကားပြော ချိုသာပြီး အနုပညာ စာပေ ဖန်တီးမှု ကောင်းတယ်။ လူမှု ဆက်ဆံရေး နဲ့ အရောင်း အဝယ် နှစ်ခု လုံး ကိုက်တယ်။',
@@ -1300,7 +1304,7 @@
     const EXALT_DEBIL = {
       Sun: { ex: 0, de: 6, exT: 'တနင်္ဂနွေဟာ မိဿမှာ ဥုဒ် အမြင့်ဆုံး အား ရတဲ့ ရပ်တည်မှု ဖြစ်လို့ ဦးဆောင်မှု နဲ့ ကိုယ့် ယုံကြည်မှု က သဘာဝ အလျောက် ပြင်းတယ်။', deT: 'တနင်္ဂနွေဟာ တူမှာ နိစ် အားနည်းတဲ့ ရပ်တည်မှု ဖြစ်လို့ ကိုယ့် ဆန္ဒ ကို သူများ နဲ့ ညှိရင်း နောက်ပို့ မိတတ်တယ်။ ကိုယ့် ရပ်တည်ချက် ကိုယ် ပြတ်ပြတ် သားသား ပြဖို့ အချိန် နဲ့ သင်ယူ လာတတ်တယ်။' },
       Mars: { ex: 9, de: 3, exT: 'အင်္ဂါဟာ မကာရမှာ ဥုဒ် အမြင့်ဆုံး အား ရတဲ့ ရပ်တည်မှု ဖြစ်လို့ စွမ်းအင် ကို စနစ် တကျ အသုံးချ နိုင်မှု အကောင်းဆုံး ပဲ။', deT: 'အင်္ဂါဟာ ကရကဋ်မှာ နိစ် အားနည်းတဲ့ ရပ်တည်မှု ဖြစ်လို့ စွမ်းအင် က စိတ် အခြေအနေပေါ် အများ မှီ နေတယ်။ စိတ် တည်ငြိမ်အောင် ထိန်း နိုင်တဲ့ အခါ အား က ပြန် တက် လာတယ်။' },
-      Mercury: { ex: 5, de: 11, exT: 'ဗုဒ္ဓဟူးဟာ ကန်မှာ ဥုဒ် အမြင့်ဆုံး အား ရတဲ့ ရပ်တည်မှု ဖြစ်လို့ သုံးသပ်ဉာဏ် နဲ့ တွက်ချက်မှု က အထက် ဆုံး အခြေအနေမှာ ရှိတယ်။', deT: 'ဗုဒ္ဓဟူးဟာ မိန်မှာ နိစ် အားနည်းတဲ့ ရပ်တည်မှု ဖြစ်လို့ ယုတ်တိ တွက်ချက်မှု ထက် အတွင်းသိ နဲ့ စိတ်ကူး က အရင် လာ တတ်တယ်။ အရေးကြီး စာရွက် ကိစ္စတွေမှာ စစ် ဆေး မှု ပို လိုတယ်။' },
+      Mercury: { ex: 5, de: 11, exT: 'ဗုဒ္ဓဟူးဟာ ကန်မှာ ဥုဒ် အမြင့်ဆုံး အား ရတဲ့ ရပ်တည်မှု ဖြစ်လို့ သုံးသပ်ဉာဏ် နဲ့ တွက်ချက်မှု က အထက် ဆုံး အခြေအနေမှာ ရှိတယ်။', deT: 'ဗုဒ္ဓဟူးဟာ မိန်မှာ နိစ် အားနည်းတဲ့ ရပ်တည်မှု ဖြစ်လို့ ယုတ္တိ တွက်ချက်မှု ထက် အတွင်းသိ နဲ့ စိတ်ကူး က အရင် လာ တတ်တယ်။ အရေးကြီး စာရွက် ကိစ္စတွေမှာ စစ် ဆေး မှု ပို လိုတယ်။' },
       Jupiter: { ex: 3, de: 9, exT: 'ကြာသပတေးဟာ ကရကဋ်မှာ ဥုဒ် အမြင့်ဆုံး အား ရတဲ့ ရပ်တည်မှု ဖြစ်လို့ စေတနာ၊ ပညာ၊ ကံ ကောင်းမှု သုံးခု လုံး အား အပြည့် ရတယ်။', deT: 'ကြာသပတေးဟာ မကာရမှာ နိစ် အားနည်းတဲ့ ရပ်တည်မှု ဖြစ်လို့ ကံ ကို အလုပ်နဲ့ အစားထိုး ရတယ်။ အဖွဲ့အစည်း အတွင်းမှာ ဖြည်းဖြည်း တိုး တက် ရင်း နောက်ပိုင်း အမြင် ရင့်ကျက် လာတယ်။' },
       Venus: { ex: 11, de: 5, exT: 'သောကြာဟာ မိန်မှာ ဥုဒ် အမြင့်ဆုံး အား ရတဲ့ ရပ်တည်မှု ဖြစ်လို့ အနုပညာ ခံစားမှု နဲ့ ချစ်ခြင်း မေတ္တာ က အနက် ဆုံး အခြေအနေမှာ ရှိတယ်။', deT: 'သောကြာဟာ ကန်မှာ နိစ် အားနည်းတဲ့ ရပ်တည်မှု ဖြစ်လို့ အချစ်မှာ ပြည့်စုံမှု ရှာလွန်း တာ ကို လျှော့ ပြီး ခံစားချက်ကို ရိုးရိုး ခံစား တတ် လာဖို့ သင်ယူ ရတယ်။' },
       Saturn: { ex: 6, de: 0, exT: 'စနေဟာ တူမှာ ဥုဒ် အမြင့်ဆုံး အား ရတဲ့ ရပ်တည်မှု ဖြစ်လို့ စည်းကမ်း နဲ့ မျှတမှုကို အကောင်းဆုံး ချိန် ညှိ နိုင်တယ်။', deT: 'စနေဟာ မိဿမှာ နိစ် အားနည်းတဲ့ ရပ်တည်မှု ဖြစ်လို့ စိတ် မရှည်မှု နဲ့ အဟန့် အတား က အစ ပိုင်းမှာ အား ပြိုင် နေတယ်။ အချိန် ကြာလေ ကိုယ့် နည်း တွေ့ပြီး ခိုင် လေ ပဲ။' },
@@ -1310,7 +1314,7 @@
     const COMBUST_ORBS = { Mars: 17, Mercury: 14, Jupiter: 11, Venus: 10, Saturn: 15 };
     const COMBUST_TEXTS = {
       Mars: 'အင်္ဂါဟာ တနင်္ဂနွေ နဲ့ နီးကပ်ပြီး လောင်ကျွမ်း (Combust) အခြေအနေမှာ ရှိလို့ စွမ်းအင် ထွက်တာ မမှန်ဘူး — တစ်ခါ တစ်ခါ အား ကုန် သလို၊ တစ်ခါ တစ်ခါ ရုတ်တရက် ပေါက် ကွဲ သလို ဖြစ်တတ်တယ်။ ဒေါသ ကို အလုပ် ထဲ လမ်းကြောင်း မှန် ထားဖို့ အထူး လိုတယ်။',
-      Mercury: 'ဗုဒ္ဓဟူးဟာ တနင်္ဂနွေ နဲ့ နီးကပ်ပြီး လောင်ကျွမ်း (Combust) အခြေအနေမှာ ရှိလို့ ကိုယ့် အမြင် နဲ့ ကိုယ့် အတ်တ က ရော နေ တတ်တယ်။ ဆုံးဖြတ်ချက်မှာ သူများ အမြင် ကို သပ်သပ် နားထောင် ဖို့ ကြိုးစား ရတတ်တယ်။',
+      Mercury: 'ဗုဒ္ဓဟူးဟာ တနင်္ဂနွေ နဲ့ နီးကပ်ပြီး လောင်ကျွမ်း (Combust) အခြေအနေမှာ ရှိလို့ ကိုယ့် အမြင် နဲ့ ကိုယ့် အတ္တ က ရော နေ တတ်တယ်။ ဆုံးဖြတ်ချက်မှာ သူများ အမြင် ကို သပ်သပ် နားထောင် ဖို့ ကြိုးစား ရတတ်တယ်။',
       Jupiter: 'ကြာသပတေးဟာ တနင်္ဂနွေ နဲ့ နီးကပ်ပြီး လောင်ကျွမ်း (Combust) အခြေအနေမှာ ရှိလို့ အကြံဉာဏ်/လမ်းပြမှု က ကိုယ့် ဂုဏ် နဲ့ ရော မိ တတ်တယ်။ ဆရာ/အကြီးအကဲ တွေနဲ့ အမြင် ထိပ် တိုက် ဖြစ်လွယ်ပြီး နှိမ့်ချ သင်ယူ မှုက အကျိုး ပို ပေးတယ်။',
       Venus: 'သောကြာဟာ တနင်္ဂနွေ နဲ့ နီးကပ်ပြီး လောင်ကျွမ်း (Combust) အခြေအနေမှာ ရှိလို့ အချစ်/သက်သာ မှုက ကိုယ့် ဂုဏ် ကိစ္စနဲ့ ရော တတ်တယ်။ ဆက်ဆံရေး မှာ ကိုယ့် ဆန္ဒ ကြီး လွန်း တာ ကို သတိထား ပြီး တစ်ဖက်လူ ခံစားချက်ကို နေရာ ပေးဖို့ လိုတယ်။',
       Saturn: 'စနေဟာ တနင်္ဂနွေ နဲ့ နီးကပ်ပြီး လောင်ကျွမ်း (Combust) အခြေအနေမှာ ရှိလို့ တာဝန် ထမ်း ရတာ ပို လေး တတ်တယ်။ အာဏာ ရှိသူ တွေနဲ့ ဆက်ဆံရေး မှာ ဖိအား ရှိနိုင်ပြီး ကိုယ့် အလုပ် ကို တိတ်တိတ် ခိုင်ခိုင် လုပ်ရင်း အချိန် နဲ့ သက်သေ ပြလာတတ်တယ်။'
@@ -1812,9 +1816,10 @@
       if(s('Sun')===s('Mercury')) add('Budha-Aditya Yoga','Sun + Mercury ပူးယှဉ်ခြင်း','ဉာဏ်၊ စီမံခန့်ခွဲမှု၊ ဆက်သွယ်ရေးနှင့် analytical thinking အားကောင်းစေသည်။',3,['Sun','Mercury']);
       if(s('Moon')===s('Mars')) add('Chandra-Mangala Yoga','Moon + Mars ပူးယှဉ်ခြင်း','ငွေရှာလိုစိတ်၊ လုပ်ငန်းစွမ်းအားနှင့် စီးပွားရေးဆုံးဖြတ်ချက်ကို အားပေးနိုင်သည်။',3,['Moon','Mars']);
       if([1,4,7,10].includes(((s('Jupiter')-s('Moon')+12)%12)+1)) add('Gaja-Kesari Yoga','Jupiter သည် Moon မှ ကိန်းအိမ်တွင်ရှိခြင်း','ဉာဏ်၊ ဩဇာ၊ လူမှုအထောက်အပံ့နှင့် အခွင့်အရေးကို အားပေးနိုင်သည်။',4,['Jupiter','Moon']);
-      const moonOthers=['Sun','Mars','Mercury','Jupiter','Venus','Saturn'].filter(k=>Math.abs((s(k)-s('Moon')+12)%12)===1);
+      const moonYogaPlanets=['Mars','Mercury','Jupiter','Venus','Saturn'];
+      const moonOthers=moonYogaPlanets.filter(k=>Math.abs((s(k)-s('Moon')+12)%12)===1);
       if(moonOthers.length)add('Sunapha Yoga','Moon မှ ၂ တန့်တွင် ဂြိုဟ်ရှိခြင်း','ကိုယ်ပိုင်စွမ်းရည်ဖြင့် ရလဒ်တည်ဆောက်နိုင်မှု။',3,moonOthers);
-      const moonPrev=['Sun','Mars','Mercury','Jupiter','Venus','Saturn'].filter(k=>Math.abs((s(k)-s('Moon')+12)%12)===11);
+      const moonPrev=moonYogaPlanets.filter(k=>Math.abs((s(k)-s('Moon')+12)%12)===11);
       if(moonPrev.length)add('Anapha Yoga','Moon မှ ၁၂ တန့်တွင် ဂြိုဟ်ရှိခြင်း','ကိုယ်ပိုင်အရည်အချင်းနှင့် အတွင်းစွမ်းအား ထင်ရှားနိုင်သည်။',3,moonPrev);
       if(moonOthers.length&&moonPrev.length)add('Durudhara Yoga','Moon ၏ ၂/၁၂ တန့်နှစ်ဖက်တွင် ဂြိုဟ်ရှိခြင်း','အရင်းအမြစ်နှင့် အတွေ့အကြုံကို ဟန်ချက်ညီစွာ အသုံးချနိုင်မှု။',4,[...moonOthers,...moonPrev]);
       if([2,5,9,11].includes(h('Jupiter'))&&[2,5,9,11].includes(h('Venus')))add('Dhana Pattern','Jupiter/Venus သည် ဓနအိမ်များကို အားပေးခြင်း','ဝင်ငွေ၊ ပိုင်ဆိုင်မှုနှင့် အခွင့်အရေးများကို စုစည်းနိုင်သော pattern ဖြစ်သည်။',4,['Jupiter','Venus']);
@@ -1835,12 +1840,13 @@
         if (sharedLord || conjunction || exchange || aspect) rajaPairs.push([kl, tl]);
       }));
       if (rajaPairs.length) add('Raja Yoga Pattern', 'Kendra အရှင် (၄/၇/၁၀) နှင့် Trikona အရှင် (၅/၉) တို့၏ ဆက်နွယ်မှု', 'ယောဂအဖြစ် သတ်မှတ်နိုင်သည့် အခြေခံဆက်နွယ်မှု ရှိသည်။ အကျိုးပေးနိုင်မှုကို အရှင်ဂြိုဟ်များ၏ အား၊ အိမ်တည်နေရာနှင့် ဒသာတို့ဖြင့် ထပ်မံစစ်ဆေးရမည်။', 4, [...new Set(rajaPairs.flat())]);
-      if(!moonOthers.length&&!moonPrev.length)add('Kemadruma Yoga','Moon ၏ ၂/၁၂ တန့်တွင် အဓိကဂြိုဟ်မရှိခြင်း','စိတ်ပိုင်းဆိုင်ရာ မတည်ငြိမ်မှု သို့မဟုတ် ကိုယ့်အားကိုယ်ကိုးရမှုကို ဖြစ်စေနိုင်သော်လည်း cancellation factors များကိုပါ စစ်ရမည်။',2,['Moon']);
+      const moonConj = ['Mars','Mercury','Jupiter','Venus','Saturn'].some(k => s(k) === s('Moon'));
+      if(!moonOthers.length&&!moonPrev.length&&!moonConj)add('Kemadruma Yoga','Moon ၏ ၂/၁၂ တန့်တွင် အဓိကဂြိုဟ်မရှိခြင်း','စိတ်ပိုင်းဆိုင်ရာ မတည်ငြိမ်မှု သို့မဟုတ် ကိုယ့်အားကိုယ်ကိုးရမှုကို ဖြစ်စေနိုင်သော်လည်း cancellation factors များကိုပါ စစ်ရမည်။',2,['Moon']);
       return y;
     }
 
     // ===== v6.20: wealth pattern + strict exceptional gate + nakshatra layer =====
-    const PLANET_MY = { Sun: 'တနင်္ဂနွေ', Moon: 'တနင်္လာ', Mars: 'အင်္ဂါ', Mercury: 'ဗုဒ္ဓဟူး', Jupiter: 'ကြာသပတေး', Venus: 'သုကြ', Saturn: 'စနေ', Rahu: 'ရာဟု', Ketu: 'ကိတ်', Lagna: 'လဂ်' };
+    const PLANET_MY = { Sun: 'တနင်္ဂနွေ', Moon: 'တနင်္လာ', Mars: 'အင်္ဂါ', Mercury: 'ဗုဒ္ဓဟူး', Jupiter: 'ကြာသပတေး', Venus: 'သောကြာ', Saturn: 'စနေ', Rahu: 'ရာဟု', Ketu: 'ကိတ်', Lagna: 'လဂ်' };
     const NAKSHATRA_INFO = [
       ['Ashwini', 'Ashwini Kumaras', 'မြင်းခေါင်း', 'လျင်မြန်စွာ စတင်လုပ်ဆောင်နိုင်မှုနှင့် ကုသပေးလိုစိတ်'],
       ['Bharani', 'Yama', 'ယောနိ / အိုး', 'တာဝန်ယူမှု၊ စည်းကမ်းနှင့် ဖန်တီးနိုင်စွမ်း'],
@@ -1862,7 +1868,7 @@
       ['Jyeshtha', 'Indra', 'နားကပ် / ထီး', 'တာဝန်ယူမှု၊ ကာကွယ်ပေးမှုနှင့် ဦးဆောင်မှု'],
       ['Mula', 'Nirriti', 'အမြစ်စု', 'အကြောင်းရင်းအမြစ်ကို ရှာဖွေခြင်းနှင့် မလိုအပ်သည့်အရာကို ဖယ်ရှားပြောင်းလဲခြင်း'],
       ['Purva Ashadha', 'Apas (ရေ)', 'ဆင်စွယ် / ယပ်တောင်', 'ယုံကြည်ချက်ခိုင်မာမှု၊ ဇွဲနှင့် ပြိုင်ဆိုင်လိုစိတ်'],
-      ['Uttara Ashadha', 'Vishvadevas', 'ဆင် စွယ်', 'တည် မြဲ တဲ့ အောင်ပွဲ, သိက္ခာ — နောက်ကျမှ ထွန်း'],
+      ['Uttara Ashadha', 'Vishvadevas', 'ဆင်စွယ်', 'တည်မြဲသော အောင်ပွဲ၊ ဂုဏ်သိက္ခာနှင့် ရေရှည်တိုးတက်မှု'],
       ['Shravana', 'Vishnu', 'နား / ခြေရာသုံးခု', 'နားထောင်သင်ယူမှု၊ အသိပညာမျှဝေမှုနှင့် သတင်းပျံ့နှံ့မှု'],
       ['Dhanishta', 'Vasus', 'ဗုံ / ပလွေ', 'စည်းချက်၊ အဖွဲ့လိုက်လုပ်ဆောင်မှုနှင့် အရင်းအမြစ်စုစည်းမှု'],
       ['Shatabhisha', 'Varuna', 'စက်ဝိုင်း', 'သုတေသန၊ ကုသရေးနှင့် ကိုယ်ပိုင်လမ်းကြောင်း'],
@@ -1929,7 +1935,7 @@
       add('art', 'အနုပညာ / သရုပ်ဆောင် / ဂီတ ဝင်ငွေ', (S('Venus') >= 65 ? 1 : 0) + (inH('Venus', [3, 5, 10]) ? 1 : 0) + ((aspH('Venus', 10) || aspH('Venus', 2)) ? 1 : 0) + ((L(5) === 'Venus' || L(10) === 'Venus' || L(2) === 'Venus') ? 1 : 0) + (H('Venus') === H(L(10)) && L(10) !== 'Venus' ? 1 : 0), fact('Venus'));
       add('writing', 'စာပေ / ပုံနှိပ် ဝင်ငွေ', (inH('Mercury', [3, 5, 10]) ? 1 : 0) + (S('Jupiter') >= 50 && inH('Mercury', [3, 5, 10]) ? 1 : 0) + ((L(3) === 'Mercury' || L(3) === 'Jupiter' || L(5) === 'Mercury') ? 1 : 0), `${fact('Mercury')} ${fact('Jupiter')}`);
       add('tech', 'နည်းပညာ / Startup ဝင်ငွေ', (inH('Rahu', [3, 5, 10, 11]) ? 1 : 0) + (inH('Mercury', [10, 11]) || inH('Mars', [10, 11]) ? 1 : 0) + (inH('Rahu', [3, 5, 10, 11]) && S('Mercury') >= 50 ? 1 : 0), fact('Rahu'));
-      add('finance', 'ဘဏ္ / ရင်းနှီး မြှုပ်နှံ ဝင်ငွေ (ရှယ်ယာ အပါ)', (inH('Jupiter', [2, 5, 11]) && S('Jupiter') >= 65 ? 2 : 0) + ((H(L(5)) === 11 || H(L(11)) === 5) ? 1 : 0) + ((aspH('Jupiter', 5) || aspH('Jupiter', 11)) ? 1 : 0), fact('Jupiter'));
+      add('finance', 'ဘဏ် / ရင်းနှီးမြှုပ်နှံ ဝင်ငွေ (ရှယ်ယာ အပါ)', (inH('Jupiter', [2, 5, 11]) && S('Jupiter') >= 65 ? 2 : 0) + ((H(L(5)) === 11 || H(L(11)) === 5) ? 1 : 0) + ((aspH('Jupiter', 5) || aspH('Jupiter', 11)) ? 1 : 0), fact('Jupiter'));
       add('estate', 'အိမ်ခြံမြေ / ဆောက် လုပ်ရေး ဝင်ငွေ', (inH('Mars', [4, 10]) ? 1 : 0) + (lordIn(4, [2, 11]) ? 1 : 0) + (inH('Saturn', [4, 10]) ? 1 : 0), `${fact('Mars')} ${lfact(4)}`);
       add('inherit', 'အမွေ အကျိုးပေး', (lordIn(8, [2, 11]) ? 2 : 0) + ((H(L(2)) === 8 || H(L(11)) === 8) && S(L(8)) >= 50 ? 1 : 0) + ((asp(L(8)).includes(2) || asp(L(8)).includes(11)) ? 1 : 0) + (lordIn(9, [2, 11]) ? 1 : 0), lfact(8));
       add('familybiz', 'မိဘ / မိသားစု လုပ်ငန်း ဆက်ခံ အကျိုး', (([10, 11].includes(H(L(8))) || [10, 11].includes(H(L(9)))) ? 1 : 0) + ((L(10) === 'Mercury' || L(10) === 'Saturn') ? 1 : 0) + (aspH('Jupiter', 2) ? 1 : 0), `${lfact(9)} ${lfact(8)}`);
@@ -2009,15 +2015,33 @@
         let _pari = 0; { const hs2 = [1, 2, 5, 9, 10, 11]; for (let i = 0; i < hs2.length; i++) for (let j = i + 1; j < hs2.length; j++) { if (L(hs2[i]) !== L(hs2[j]) && H(L(hs2[i])) === hs2[j] && H(L(hs2[j])) === hs2[i]) _pari++; } }
         const fStruct = Math.min(1, _pari * 0.6 + _bHits * 0.2);
         const gatePct = Math.round(26 * fScore + 12 * fStack + 12 * fStrong + 8 * fOwnEx + 8 * fD9 + 8 * fLagna + 6 * fCombust + 12 * fConc + 8 * fStruct);
-        let band = null, gatePctOut = null;
+        let band = null, gatePctOut = null, wealthTier = null;
         if (wealthScore >= 78 && gatePct >= 60) {
-          const BANDS = ['အားကောင်းသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'အလွန်ကောင်းသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'အလွန်ထူးခြားသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'အလွန်ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'အလွန်ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု'];
+          const BANDS = ['အားကောင်းသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'အလွန်ကောင်းသော ဓနတည်ဆောက်နိုင်မှု အညွှန်း', 'ထူးခြားသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'အလွန်ထူးခြားသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'အလွန်ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု', 'အလွန်ရှားပါးသော ဓနဆိုင်ရာ အချက်အလက်ပေါင်းစည်းမှု'];
           const power = gatePct * 0.6 + wealthScore * 0.6;
           let idx = power >= 112 ? 4 : power >= 102 ? 3 : power >= 92 ? 2 : power >= 82 ? 1 : 0;
           if (gatePct >= 92 && wealthScore >= 97) idx = 5;
           if (gatePct >= 97 && wealthScore >= 100) idx = 6;
           band = BANDS[idx]; gatePctOut = gatePct;
+          // Requested exceptional-scale labels. These are interpretive tiers, NOT USD predictions.
+          // The numeric thresholds describe the named wealth class only; the chart cannot prove net worth.
+          if (gatePct >= 97 && wealthScore >= 99) wealthTier = { level: 7, label: 'အလွန်ထူးခြားသော ဘီလျံနာအဆင့် (အညွှန်း)', range: '$100 billion အထက်' };
+          else if (gatePct >= 95 && wealthScore >= 98) wealthTier = { level: 6, label: 'ကမ္ဘာ့အကြီးဆုံး ဓနအဆင့် (အညွှန်း)', range: '$50–100 billion' };
+          else if (gatePct >= 91 && wealthScore >= 96) wealthTier = { level: 5, label: 'အလွန်ကြီးမားသော ဘီလျံနာအဆင့် (အညွှန်း)', range: '$1–50 billion' };
+          else if (gatePct >= 86 && wealthScore >= 92) wealthTier = { level: 4, label: 'ဘီလျံနာအဆင့် (အညွှန်း)', range: '$500 million–$1 billion' };
+          else if (gatePct >= 80 && wealthScore >= 88) wealthTier = { level: 3, label: 'အလွန်ကြီးမားသော ပိုင်ဆိုင်မှုအဆင့် (အညွှန်း)', range: '$200–500 million' };
+          else if (gatePct >= 72 && wealthScore >= 84) wealthTier = { level: 2, label: 'ကြီးမားသော ပိုင်ဆိုင်မှုအဆင့် (အညွှန်း)', range: '$100–200 million' };
+          else if (gatePct >= 60 && wealthScore >= 78) wealthTier = { level: 1, label: 'အလွန်မြင့်မားသော ပိုင်ဆိုင်မှုအဆင့် (အညွှန်း)', range: '$50–100 million' };
         }
+        const specialAchievements = [];
+        const addAchievement = (label, reason) => specialAchievements.push({ label, reason });
+        const mercuryJupiterStrong = S('Mercury') >= 65 && S('Jupiter') >= 65;
+        const researchYoga = (yogas || []).some(y => /Budha-Aditya|Raja Yoga|Hamsa|Bhadra|Mahapurusha/i.test(y.name) && (y.strength || 0) >= 4);
+        if (mercuryJupiterStrong && (researchYoga || (inH('Mercury', [1, 5, 9, 10]) && inH('Jupiter', [1, 5, 9, 10]))) ) addAchievement('သုတေသန၊ တီထွင်မှုနှင့် သိပ္ပံဆိုင်ရာ ထူးခြားအောင်မြင်မှု', 'Mercury/Jupiter အားနှင့် ပညာ၊ ဉာဏ်၊ အလုပ်အကိုင်ဆိုင်ရာ ဆက်နွယ်မှုများကို ထောက်ခံအညွှန်းအဖြစ် တွေ့ရသည်။ နိုဘယ်ဆု သို့မဟုတ် ရှာဖွေတွေ့ရှိမှုကို အာမမခံပါ။');
+        if (S('Venus') >= 70 && (inH('Venus', [1, 3, 5, 10, 11]) || (yogas || []).some(y => /Malavya|Raja Yoga/i.test(y.name) && y.strength >= 4))) addAchievement('ဂန္တဝင်အနုပညာ၊ ဖျော်ဖြေရေးနှင့် ဖန်တီးမှု', 'Venus အားနှင့် ဖန်တီးမှု/လူသိများမှုဆိုင်ရာ အညွှန်းများ ပေါင်းစည်းနေသည်။');
+        if (S('Sun') >= 70 && S(L(10)) >= 70 && (stack.length >= 2 || rajaCount >= 1)) addAchievement('ခေါင်းဆောင်မှု၊ အစိုးရ/နိုင်ငံတော်အဆင့် ဂုဏ်ထူး', 'Sun၊ ၁၀ တန့်အရှင်နှင့် Yoga အညွှန်းများ ပေါင်းစည်းနေသည်။ အမှန်တကယ်ရာထူး/ဘွဲ့ရရှိမည်ဟု မဆိုလိုပါ။');
+        if (fameBase && (((S('Moon') + S('Sun') + S(L(10))) / 3) >= 75)) addAchievement('ကမ္ဘာ့အဆင့်ကျော်ကြားမှု သို့မဟုတ် သက်ရောက်မှုကြီးမားသော အလုပ်', 'လူသိများမှု၊ အလုပ်အကိုင်နှင့် ဂြိုဟ်အားဆိုင်ရာ အညွှန်းများ ပေါင်းစည်းနေသည်။');
+        if (S('Saturn') >= 70 && S('Sun') >= 65 && (stack.length >= 2 || rajaCount >= 1)) addAchievement('အဖွဲ့အစည်းကြီး/လူမှုအဆင့် ဦးဆောင်မှု', 'တာဝန်ယူမှု၊ အာဏာနှင့် ရေရှည်တည်ဆောက်မှုကို ကိုယ်စားပြုသော အညွှန်းများ ပေါင်းစည်းနေသည်။');
         const fameBase = S('Moon') >= 55 && S('Sun') >= 55 && S(L(10)) >= 60 && stack.length >= 2 && (S(L(5)) >= 60 || S('Venus') >= 65 || S('Jupiter') >= 65);
         let honor = null;
         if (fameBase) {
@@ -2028,7 +2052,7 @@
         if (S('Rahu') >= 65 && lordIn(12, [1, 4, 5, 7, 9, 10]) && s4 >= 60) luxury.push('နိုင်ငံခြားဆက်စပ်မှုနှင့် အဆင့်မြင့်သယ်ယူပို့ဆောင်ရေးကို စိတ်ဝင်စား/ရည်မှန်းနိုင်သည့် အညွှန်း');
         if ((S('Moon') >= 65 || S('Venus') >= 65) && [3, 7, 11].includes(signOf('Moon')) && s4 >= 60) luxury.push('အပန်းဖြေခရီးနှင့် အဆင့်မြင့်အတွေ့အကြုံများကို စိတ်ဝင်စားနိုင်သည့် အညွှန်း');
         if (S('Venus') >= 80 && lordIn(5, [2, 5, 11])) luxury.push('အနုပညာပစ္စည်း၊ ဒီဇိုင်း သို့မဟုတ် စုဆောင်းပစ္စည်းများကို တန်ဖိုးထားနိုင်သည့် အညွှန်း');
-        if (band || honor) exceptional = { band, honor, luxury, pct: gatePctOut };
+        if (band || honor || specialAchievements.length) exceptional = { band, honor, luxury, pct: gatePctOut, wealthTier, specialAchievements };
       } catch (e) { exceptional = null; }
       return { sources, assets, windows, exceptional };
     }
@@ -2081,12 +2105,20 @@
       const wealthPlanets=['Jupiter','Venus','Mercury','Saturn'].reduce((n,k)=>n+(_planetStrength(birthPlanets,k)/100),0);
       // Dedicated D2 Hora pass: use the divisional signs independently from D1.
       // The D2 signal informs the interpretive wealth index only; it never becomes USD.
-      const d2Planets = {};
-      Object.keys(birthPlanets).forEach((k) => { if (typeof birthPlanets[k] === 'number' && k !== 'ayanamsaVal') d2Planets[k] = calculateVarga(birthPlanets[k], 2) * 30 + (norm360(birthPlanets[k]) % 30); });
-      const d2WealthLords = [2, 11].reduce((n, h) => n + ([2, 5, 9, 11].includes(_planetHouse(d2Planets, _lordOfHouse(d2Planets, h))) ? 1 : 0), 0);
-      const d2BeneficSupport = ['Jupiter', 'Venus', 'Mercury'].filter((k) => [1, 2, 5, 9, 10, 11].includes(_planetHouse(d2Planets, k))).length;
+      // D2 Hora is a two-sign Parashari division (Cancer/Leo), not a normal 12-house chart.
+      // Never run D1-style house counting against D2 longitudes: that creates impossible house claims.
+      const horaSign = (planet) => calculateVarga(birthPlanets[planet], 2);
+      const sunHoraPlanets = ['Sun', 'Mars', 'Jupiter'];
+      const moonHoraPlanets = ['Moon', 'Venus', 'Saturn'];
+      const sunHoraCount = sunHoraPlanets.filter((k) => typeof birthPlanets[k] === 'number' && horaSign(k) === 4).length;
+      const moonHoraCount = moonHoraPlanets.filter((k) => typeof birthPlanets[k] === 'number' && horaSign(k) === 3).length;
+      const lord2Hora = horaSign(lord2);
+      const lord11Hora = horaSign(lord11);
+      const horaSuitable = (lord, hora) => lord === 'Mercury' || hora === (['Sun', 'Mars', 'Jupiter'].includes(lord) ? 4 : 3);
+      const d2WealthLords = (horaSuitable(lord2, lord2Hora) ? 1 : 0) + (horaSuitable(lord11, lord11Hora) ? 1 : 0);
+      const d2BeneficSupport = Math.min(3, Math.round((sunHoraCount + moonHoraCount) / 2));
       const d2Score = Math.min(8, d2WealthLords * 2 + d2BeneficSupport);
-      const d2Evidence = `D2 Hora အညွှန်း — ၂/၁၁ တန့်အရှင်များအနက် ${d2WealthLords}/2 သည် ဓနဆိုင်ရာ တန့်များတွင် ရှိပြီး Jupiter/Venus/Mercury အနက် ${d2BeneficSupport}/3 သည် အထောက်အပံ့ရှိသည့် တန့်များတွင် ရှိသည်။`;
+      const d2Evidence = `D2 Hora အညွှန်း — ၂/၁၁ အိမ်ရှင်များ၏ ဟောရာသင့်လျော်မှု ${d2WealthLords}/2၊ သက်ဆိုင်ရာ ဟောရာတွင်ရှိသော သတ်မှတ်ဂြိုဟ်အထောက်အပံ့ ${d2BeneficSupport}/3။ D2 ကို ၁၂ တန့်ဇာတာအဖြစ် မတွက်ထားပါ။`;
       const dhanaYogaCount=(yogas||[]).filter(y=>/Dhana|Lakshmi|Vasumati|Chandra-Mangala|Raja/i.test(y.name)).length;
       let savPts=0, aspectPts=0, pariPts=0, d9Pts=0;
       try { const _av2=computeAshtakavarga(birthPlanets); const _ls=calculateVarga(birthPlanets.Lagna,1); [2,5,9,11].forEach((h)=>{ const sv=_av2.sav[(_ls+h-1)%12]||25; savPts+=Math.max(0,Math.min(2.5,(sv-24)/3)); }); } catch(e) {}
@@ -3510,16 +3542,15 @@
       if (selComps.length) results.push(scoreJob(p, dashaTree, { name: 'ကိုယ်တိုင် တွဲထားသော အလုပ် (' + selComps.map((id) => jobComponentById(id).name).join(' + ') + ')', comps: selComps.map((id, ix) => [id, [3, 2, 1][ix] || 1]) }));
       const ranked = [...results].sort((a, b) => b.score - a.score);
       let kpNote = null;
-      if (kpData && ranked.length && kpData.houses && kpData.houses[9]) {
+      if (kpData && ranked.length && Array.isArray(kpData.houseSig) && kpData.houseSig[9]) {
         try {
-          const cusp = kpData.houses[9];
-          const sigSet = new Set();
-          if (cusp.sig) ['A', 'B', 'C', 'D'].forEach((g) => { (cusp.sig[g] || []).forEach((pl) => sigSet.add(pl)); });
-          if (cusp.csl) sigSet.add(cusp.csl);
+          const tenth = kpData.houseSig[9];
           const topPlanets = new Set();
           ranked[0].parts.forEach((pt) => { const c = jobComponentById(pt.id); c.houses.forEach((h) => topPlanets.add(_lordOfHouse(p, h))); c.karakas.forEach((k) => topPlanets.add(k)); });
-          const hits = [...topPlanets].filter((pl) => pl && sigSet.has(pl));
-          if (hits.length) kpNote = `KP အရ ၁၀ တန့် Cusp Sub-Lord ဆက်နွယ်မှု က ထိပ်ဆုံး ရွေးချယ်မှု ၏ အချက် (${hits.join(', ')}) တွေ ကို signify လုပ်နေတယ် — အလုပ်ဘက် KP ထောက်ခံချက် ရှိတယ်`;
+          const hits = [...topPlanets].filter((pl) => pl && kpData.planetSig[pl] && (kpData.planetSig[pl].all || []).includes(10));
+          const subLord = tenth.cuspSubLord;
+          const subLordSupports10 = !!(subLord && kpData.planetSig[subLord] && (kpData.planetSig[subLord].all || []).includes(10));
+          if (hits.length || subLordSupports10) kpNote = `KP အရ ၁၀ တန့် Cusp Sub-Lord ${subLord || '—'} နှင့် အလုပ်ရွေးချယ်မှု ဆက်နွယ်သော Significator ${hits.join(', ') || 'ရှိ'} ကို တွေ့ရသည်။ ဤအညွှန်းသည် အလုပ်ရလဒ်ကို အာမမခံပါ။`;
         } catch (e) {}
       }
       const grade = (sc) => sc >= 65 ? 'အားကောင်း' : sc >= 48 ? 'အလယ်အလတ်' : 'အားနည်း';
@@ -4321,6 +4352,22 @@
         const current = calculateWealthEstimate('lower', '10000', '', '', 10);
         const proj = calculateWealthEstimate('lower', '10000', '50000', '10', 10);
         return empty.mode === 'insufficient' && current.low === 10000 && current.high === 10000 && proj.mode === 'projection' && proj.high >= proj.low;
+      });
+      test('Lunar Sunapha/Anapha logic excludes the Sun from the qualifying planet list', () => {
+        const src = checkAllYogas.toString();
+        return src.includes("const moonYogaPlanets=['Mars','Mercury','Jupiter','Venus','Saturn']") && !src.includes("const moonOthers=['Sun'") && !src.includes("const moonPrev=['Sun'");
+      });
+      test('D2 wealth indicator does not treat the Hora chart as a 12-house chart', () => {
+        const src = generateLifeOverview.toString();
+        return src.includes('D2 Hora is a two-sign Parashari division') && !src.includes('_planetHouse(d2Planets');
+      });
+      test('KP rectification reads the actual planetSig property', () => {
+        const src = _rectConnection.toString();
+        return src.includes('kpData.planetSig') && !src.includes('kpData.houses');
+      });
+      test('Job-choice KP note uses houseSig/planetSig returned by buildKPData', () => {
+        const src = JobChoiceCard.toString();
+        return src.includes('kpData.houseSig[9]') && src.includes('kpData.planetSig') && !src.includes('kpData.houses');
       });
       test('Dasha tree generates a valid first major period from a valid Moon longitude', () => {
         const tree = calculateDashaTree(123.456, new Date(1990, 0, 1, 12, 0));
@@ -5342,6 +5389,8 @@
                     <span className="text-[9px] bg-amber-400/20 text-amber-200 px-2 py-0.5 rounded font-semibold">တင်းကျပ် တဲ့ စည်း ကိုက် ညီ မှ ပေါ် သည်</span>
                   </div>
                   {lifeOverview.exceptional.band && (<div><div className="text-[11px] text-amber-300 font-bold">ဓန အင်အား အဆင့် (Capacity):</div><div className="text-sm font-bold mt-0.5">{lifeOverview.exceptional.band}</div>{lifeOverview.exceptional.pct != null && (<div className="text-[9px] text-amber-200/60 mt-0.5">အချက်အလက်များ ပေါင်းစပ်အညွှန်း: {lifeOverview.exceptional.pct}%</div>)}</div>)}
+                  {lifeOverview.exceptional.wealthTier && (<div className="rounded-lg border border-sky-400/50 bg-sky-950/70 p-3 space-y-1"><div className="text-[11px] font-bold text-sky-200">💠 ထူးခြား ဓနအဆင့် — Exceptional Wealth Tier {lifeOverview.exceptional.wealthTier.level}</div><div className="text-sm font-bold text-white">{lifeOverview.exceptional.wealthTier.label}</div><div className="text-lg font-black text-sky-200">{lifeOverview.exceptional.wealthTier.range}</div><p className="text-[10px] leading-relaxed text-sky-100/80">ဤ USD ပမာဏသည် အဆင့်အမည်အတွက် သတ်မှတ်ထားသော အကြမ်းဖျင်း net-worth band သာဖြစ်သည်။ ဇာတာမှ အမှန်တကယ်ပိုင်ဆိုင်မှုကို တိုင်းတာခြင်း/ခန့်မှန်းအာမခံခြင်း မဟုတ်ပါ။</p></div>)}
+                  {lifeOverview.exceptional.specialAchievements?.length > 0 && (<div className="space-y-2 border-t border-white/15 pt-2"><div className="text-[11px] font-bold text-amber-200">🌟 ထူးခြားစွမ်းဆောင်ရည် အညွှန်းများ</div>{lifeOverview.exceptional.specialAchievements.map((a, i) => (<div key={i} className="rounded-md bg-white/5 p-2"><div className="text-[11px] font-bold text-white">✦ {a.label}</div><div className="text-[10px] leading-relaxed text-indigo-100/80">{a.reason}</div></div>)}</div>)}
                   {lifeOverview.exceptional.honor && (<div><div className="text-[11px] text-amber-300 font-bold">ဂုဏ် / ဆု အဆင့်:</div><div className="text-[12px] font-bold mt-0.5">{lifeOverview.exceptional.honor}</div></div>)}
                   {lifeOverview.exceptional.luxury?.length > 0 && (<div className="space-y-0.5">{lifeOverview.exceptional.luxury.map((x, i) => (<p key={i} className="text-[11px] text-indigo-100 leading-relaxed">✦ {x}</p>))}</div>)}
                   <p className="text-[10px] text-indigo-200/80 leading-relaxed border-t border-white/10 pt-1.5">ဤအပိုင်းသည် ယောဂများ၊ ဂြိုဟ်အင်အား၊ D9 အတည်ပြုချက်နှင့် လဂ်အရှင်အခြေအနေတို့ကို စုပေါင်းစစ်ဆေးပြီး သတ်မှတ်ချက်များ ပြည့်မီမှသာ ပေါ်လာသည်။ ဓနတည်ဆောက်နိုင်မှုဆိုင်ရာ အညွှန်းသာဖြစ်ပြီး အမှန်တကယ်ပိုင်ဆိုင်မည့် ပမာဏကို အာမခံခြင်းမဟုတ်ပါ။ ဒသာကာလ၊ ကိုယ်ပိုင်ဆုံးဖြတ်ချက်နှင့် လက်တွေ့အခြေအနေများက ရလဒ်ကို သက်ရောက်စေသည်။</p>
